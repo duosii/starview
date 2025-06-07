@@ -1,0 +1,76 @@
+--- pinball/scene/title/TitleScene.as
++++ pinball/scene/title/TitleScene.as
+@@ -605,71 +605,2 @@ package pinball.scene.title
+-         var _loc2_:* = null as LeitingSDKExtension;
+-         var _loc3_:* = null as String;
+-         var _loc4_:* = null as OkDialog;
+-         switch(param1)
+-         {
+-            case 0:
+-               if(!versionLogic.isQuerySuccess())
+-               {
+-                  showInstantMessage("获取版本信息中，请稍候",InstantMessagePosition.Center);
+-                  return;
+-               }
+-               if(!channelSDK.sdkIsInited())
+-               {
+-                  showInstantMessage("初始化中，请稍候",InstantMessagePosition.Center);
+-                  return;
+-               }
+-               if(channelSDK.isSDKLogining())
+-               {
+-                  showInstantMessage("登录中，请稍候",InstantMessagePosition.Center);
+-                  return;
+-               }
+-               if(channelSDK.isSDKLoginOk())
+-               {
+-                  channelSDK.startLoginServer(onLoginServerSuccess);
+-                  break;
+-               }
+-               channelSDK.sdkLoginManual(onSDKLoginCompleteHander);
+-               break;
+-            case 1:
+-               openDialog(new TitleMenuDialog());
+-               break;
+-            case 2:
+-               signInAchievements(false);
+-               break;
+-            case 3:
+-            case 4:
+-               if(devConfig.broadcasting.index == 1)
+-               {
+-                  if(AppTime_Impl_.getTime(globalLogic.getTime()) - AppTime_Impl_.getTime(lastClickTime) < lastClickInternalTime)
+-                  {
+-                     showInstantMessage(logic.asset.getUiString("micro_community_click_tips"),InstantMessagePosition.Center);
+-                     return;
+-                  }
+-                  lastClickTime = globalLogic.getTime();
+-                  _loc2_ = LeitingSDKExtension.getInstance();
+-                  _loc2_.removeEventListener(CallBack.MICROCOMMUNITYCALLBACK,onLeitingSDKStartCallBack);
+-                  _loc2_.addEventListener(CallBack.MICROCOMMUNITYCALLBACK,onLeitingSDKStartCallBack);
+-                  if(channelSDK.sdkIsInited())
+-                  {
+-                     openMicroCommunity("1");
+-                     hasNewMessageReceived = false;
+-                     break;
+-                  }
+-                  showInstantMessage("初始化中，请稍候",InstantMessagePosition.Center);
+-                  break;
+-               }
+-               Boot.lastError = new Error();
+-               throw new ClientError(3260,"在Mirrativ投放功能无效的版本中，尝试了Mirrativ投放");
+-               break;
+-            case 5:
+-               _loc3_ = "1、本游戏是一款玩法简单的角色养成类游戏，适用于年满12周岁及以上的用户，建议未成年人在家长监护下使用游戏产品。\n";
+-               _loc3_ = "1、本游戏是一款玩法简单的角色养成类游戏，适用于年满12周岁及以上的用户，建议未成年人在家长监护下使用游戏产品。\n" + "2、本游戏基于架空的故事背景，剧情简单且积极向上，部分人物有区别于现实场景的适度改编，不会与现实混淆。游戏玩法鼓励玩家通过思考组建强大的队伍、完成关卡任务，帮助变为野兽的勇者回到自己的世界去战胜强大的魔王。游戏中没有基于文字和语音的陌生人社交系统。\n";
+-               _loc3_ += "3、本游戏已接入国家实名认证系统，未实名认证用户将无法登录游戏进行任何的游戏体验。游戏中部分玩法和道具需要付费。认证为未成年人的用户仅可在周五、周六、周日和法定节假日的20时至21时，进行1小时的游戏体验。2021年9月1日起，雷霆游戏平台不允许未成年人注册账号；未满16周岁的玩家无法充值；16周岁（含）以上未成年玩家，单笔充值金额不得超过50元人民币，每月充值金额累计不得超过200元人民币。\n";
+-               _loc3_ += "4、本游戏以弹珠台战斗为主题，玩家通过将不同类型的角色组合来实现强大的技能合击效果，挑战各式各样的强大敌人，有助于培养玩家策略组合的能力。同时游戏中存在少量团队任务，需要玩家之间互相配合才能通过，有助于玩家建立团队合作意识。游戏美术风格独特，内有各类画风精致的角色立绘及制作精良的像素场景，能够给玩家带来美轮美奂的视觉体验，有助于提高玩家的审美能力。";
+-               _loc4_ = new OkDialog([DialogContent.CustomText(_loc3_,DialogTextViewTextColor.Normal,36,DialogTextViewTextAlign.Head,DialogTextViewTextAlign.Head,DialogContentIndentKind.None,DialogTextViewBackgroundColor.None,Option.None,false)],new BindImpl2_1(FunctionTools0.expanded1,onEageWarningHandel).execute);
+-               _loc4_.setTitle("适龄提示");
+-               openDialog(_loc4_);
+-               break;
+-            case 6:
+-               Lib.getURL(new URLRequest(logic.asset.getUiString("title_icp_url")));
+-         }
++         showInstantMessage("this app was patched by starview",InstantMessagePosition.Center);
++         return
