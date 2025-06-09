@@ -19,23 +19,27 @@ pub fn apply(old: &str, patch: patch::Patch) -> Result<String, Error> {
 
     while let Some((line_n, line)) = lines.next() {
         if let Some(hunk) = hunk_map.get(&(line_n + 1)) {
-            let mut add_lines = 0;
-            for hunk_line in hunk.lines.iter() {
+            // insert the current line if the patch is only adding
+            if hunk.old_range.count == 0 {
+                new_lines.push(line);
+            }
+            for (hunk_line_n, hunk_line) in hunk.lines.iter().enumerate() {
                 match hunk_line {
                     Line::Add(new_line) => {
                         new_lines.push(&new_line);
-                        add_lines += 1;
                     }
-                    Line::Remove(_) => {}
+                    Line::Remove(_) => {
+                        if hunk_line_n != 0 {
+                            lines.next();
+                        }
+                    }
                     Line::Context(context_line) => {
                         new_lines.push(&context_line);
+                        if hunk_line_n != 0 {
+                            lines.next();
+                        }
                     }
                 }
-            }
-
-            let old_range: usize = hunk.old_range.count.try_into()?;
-            if old_range > add_lines {     
-                lines.nth(old_range - add_lines);
             }
         } else {
             new_lines.push(line);

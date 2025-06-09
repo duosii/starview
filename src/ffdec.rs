@@ -9,6 +9,7 @@ const FFDEC_LOCATIONS: [&str; 1] = [
     "ffdec/ffdec.bat", // Windows; in the same directory as starview in a folder called "ffdec"
 ];
 const FFDEC_FILENAME: &str = "ffdec";
+const IGNORE_ERROR: &str = "Duplicate pack path found";
 
 /// the name of the directory where FFDEC extracts scripts to.
 pub const FFDEC_SCRIPTS_EXTRACT_DIR: &str = "scripts";
@@ -76,7 +77,7 @@ impl FFDec {
     ) -> Result<Output, Error> {
         let in_swf_path = in_swf_path.as_ref().to_string_lossy();
 
-        let import_result = Command::new(&self.location)
+        let import_output = Command::new(&self.location)
             .args([
                 "-air",
                 "-importScript",
@@ -84,8 +85,20 @@ impl FFDec {
                 &in_swf_path,
                 &scripts_path.as_ref().to_string_lossy(),
             ])
-            .output();
+            .output()
+            .map_err(|import_err| Error::FFDecImport(import_err.to_string()))?;
 
-        import_result.map_err(|import_err| Error::FFDecImport(import_err.to_string()))
+        let errs: Vec<String> = String::from_utf8_lossy(&import_output.stderr)
+            .lines()
+            .filter_map(|err| {
+                (err.contains("SEVERE") && !err.contains(IGNORE_ERROR)).then(|| err.to_string())
+            })
+            .collect();
+
+        if !errs.is_empty() {
+            return Err(Error::FFDecImport(errs.join("\n")));
+        }
+
+        Ok(import_output)
     }
 }

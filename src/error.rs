@@ -20,9 +20,6 @@ pub enum Error {
     #[error("error when parsing patch: {0}")]
     PatchParse(String),
 
-    #[error("patch file \"{0}\" does not contain the modified \".as\" file name")]
-    PatchFilename(String),
-
     #[error("attempt to patch a file that does not exist: {0}")]
     ToPatchFileMissing(String),
 

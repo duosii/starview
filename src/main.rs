@@ -4,7 +4,6 @@ mod ffdec;
 mod patch;
 mod utils;
 
-use ::patch::Patch;
 use apk::{Apk, signer::ApkSigner};
 use clap::Parser;
 use error::Error;
@@ -15,8 +14,6 @@ use std::{
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
 };
-
-use crate::patch::apply;
 
 /// Where extracted FFDec files will be placed
 const EXTRACT_DIR: &str = "extracted";
