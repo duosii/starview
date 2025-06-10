@@ -1,13 +1,18 @@
-use std::collections::HashMap;
+mod error;
+mod script;
+mod utils;
+
+pub mod apk;
+pub mod ffdec;
 
 use patch::{Hunk, Line};
+use std::collections::HashMap;
 
-use crate::error::Error;
-
-pub mod script;
+pub use error::Error;
+pub use script::ScriptPatcher;
 
 /// Attempts to apply the provided [`patch::Patch`] to a string.
-pub fn apply(old: &str, patch: patch::Patch) -> Result<String, Error> {
+fn apply_patch(old: &str, patch: patch::Patch) -> Result<String, Error> {
     // build hunk map
     let mut hunk_map: HashMap<usize, Hunk> = HashMap::with_capacity(patch.hunks.len());
     for hunk in patch.hunks {

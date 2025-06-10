@@ -1,0 +1,9 @@
+[package]
+name = "starview_cli"
+edition = "2024"
+
+[dependencies]
+starview_patch.workspace = true
+clap.workspace = true
+anstyle.workspace = true
+thiserror.workspace = true

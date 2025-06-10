@@ -6,7 +6,7 @@ use std::{
 
 use walkdir::WalkDir;
 
-use crate::{error::Error, patch::apply};
+use crate::{apply_patch, error::Error};
 
 /// Handles patching ActionScript files from a directory of diff patches
 pub struct ScriptPatcher {
@@ -67,7 +67,7 @@ impl ScriptPatcher {
                 to_patch_file.read_to_string(&mut to_patch_file_string)?;
 
                 // apply patch & write patched string to file
-                to_patch_file_string = apply(&to_patch_file_string, patch)?;
+                to_patch_file_string = apply_patch(&to_patch_file_string, patch)?;
                 to_patch_file.set_len(0)?;
                 to_patch_file.seek(std::io::SeekFrom::Start(0))?;
                 to_patch_file.write_all(to_patch_file_string.as_bytes())?;

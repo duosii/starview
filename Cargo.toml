@@ -3,7 +3,31 @@ name = "starview"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+incremental = true
+codegen-units = 256
+panic = 'unwind'
+
+[workspace]
+members = [".", "crates/*"]
+
+[workspace.dependencies]
+starview_cli = { path = "crates/starview_cli" }
+starview_patch = { path = "crates/starview_patch" }
+
+anstyle = "1.0.11"
 clap = { version = "4.5.39", features = ["derive"] }
 patch = "0.7.0"
 rayon = "1.10.0"
@@ -12,3 +36,6 @@ tempfile = "3.20.0"
 thiserror = "2.0.12"
 walkdir = "2.5.0"
 zip = "4.0.0"
+
+[dependencies]
+starview_cli.workspace = true
