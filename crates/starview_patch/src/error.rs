@@ -20,6 +20,9 @@ pub enum Error {
     #[error("error when parsing patch: {0}")]
     PatchParse(String),
 
+    #[error("error when parsing replacement: {0}")]
+    ReplacementParse(String),
+
     #[error("attempt to patch a file that does not exist: {0}")]
     ToPatchFileMissing(String),
 

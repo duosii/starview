@@ -8,6 +8,7 @@ use starview_patch::{
     ScriptPatcher,
     apk::{self, Apk, signer::ApkSigner},
     ffdec::{self, FFDec},
+    replace::Replacements,
 };
 
 use crate::Error;
@@ -52,6 +53,11 @@ pub struct Args {
     #[arg(long, short)]
     pub patch: Option<String>,
 
+    /// Strings to replace in patches
+    /// In the format to_replace=replace_with
+    #[arg(long, short)]
+    pub replace: Option<String>,
+
     /// Path to the APK file
     pub apk_path: String,
 
@@ -77,6 +83,12 @@ pub fn patch(args: Args) -> Result<(), Error> {
         new_path
     };
 
+    let replacements = if let Some(replace_str) = args.replace {
+        Some(Replacements::try_parse_str(&replace_str)?)
+    } else {
+        None
+    };
+
     // load ffdec interface
     let ffdec = if let Some(custom_ffdec_path) = args.ffdec {
         FFDec::from_path(custom_ffdec_path)
@@ -98,7 +110,10 @@ pub fn patch(args: Args) -> Result<(), Error> {
     println!("  unzipped to: {:?}", apk_dir_path);
 
     // load script patcher
-    let patcher = ScriptPatcher::new(args.patch.unwrap_or(DEFAULT_PATCH_PATH.to_string()))?;
+    let patcher = ScriptPatcher::new(
+        args.patch.unwrap_or(DEFAULT_PATCH_PATH.to_string()),
+        replacements,
+    )?;
 
     // extract scripts
     println!("extracting scripts...");

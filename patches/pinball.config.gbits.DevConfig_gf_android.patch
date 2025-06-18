@@ -1,0 +1,5 @@
+--- pinball/config/gbits/DevConfig_gf_android.as
++++ pinball/config/gbits/DevConfig_gf_android.as
+@@ -21 +21 @@ package pinball.config.gbits
+-         apiServer = ApiServerKind.Custom("https","shijtswygamegf.leiting.com");
++         apiServer = ApiServerKind.Custom("{api_scheme}","{api_host}");

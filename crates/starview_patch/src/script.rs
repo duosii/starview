@@ -6,17 +6,23 @@ use std::{
 
 use walkdir::WalkDir;
 
-use crate::{apply_patch, error::Error};
+use crate::{apply_patch, error::Error, replace::Replacements};
 
 /// Handles patching ActionScript files from a directory of diff patches
 pub struct ScriptPatcher {
     /// The paths of all of the patches that this ScriptPatcher will apply
     patch_paths: Vec<PathBuf>,
+
+    /// Replacements for patches
+    replacements: Option<Replacements>,
 }
 
 impl ScriptPatcher {
     /// Create a new ScriptPatcher that will load patches from the provided directory
-    pub fn new(patches_path: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn new(
+        patches_path: impl AsRef<Path>,
+        replacements: Option<Replacements>,
+    ) -> Result<Self, Error> {
         let patches_path = patches_path.as_ref();
 
         if !patches_path.is_dir() {
@@ -36,7 +42,10 @@ impl ScriptPatcher {
             })
             .collect::<Result<Vec<_>, Error>>()?;
 
-        Ok(Self { patch_paths: paths })
+        Ok(Self {
+            patch_paths: paths,
+            replacements,
+        })
     }
 
     /// Pulling from this ScriptPatcher's patches, patches all matching
@@ -47,6 +56,14 @@ impl ScriptPatcher {
             if patch_file_path.is_file() {
                 // load the patch file & parse it into a [`diffy::Patch``]
                 let patch_file_string = read_file_to_string(patch_file_path)?;
+
+                // replace patch text if any replacements exist
+                let patch_file_string = if let Some(replacements) = &self.replacements {
+                    replacements.replace(&patch_file_string)
+                } else {
+                    patch_file_string
+                };
+
                 let patch = patch::Patch::from_single(&patch_file_string)
                     .map_err(|err| Error::PatchParse(err.to_string()))?;
 

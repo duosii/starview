@@ -4,6 +4,7 @@ mod utils;
 
 pub mod apk;
 pub mod ffdec;
+pub mod replace;
 
 use patch::{Hunk, Line};
 use std::collections::HashMap;
