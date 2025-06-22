@@ -7,4 +7,7 @@ pub enum Error {
 
     #[error("patch error: {0}")]
     Patch(#[from] starview_patch::Error),
+
+    #[error("game API error: {0}")]
+    GameApi(#[from] starview_net::Error),
 }

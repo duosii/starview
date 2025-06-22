@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use clap::{Parser, command};
+use clap::Parser;
 use starview_patch::{
     ScriptPatcher,
     apk::{self, Apk, signer::ApkSigner},
@@ -21,7 +21,6 @@ const DEFAULT_KEYSTORE_PASS: &str = "pass:worldflipper";
 const DEFAULT_PATCH_PATH: &str = "patches";
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
 pub struct Args {
     /// The location of the FFDec program
     #[arg(long, short)]

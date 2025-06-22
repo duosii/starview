@@ -3,6 +3,7 @@ name = "starview_net"
 edition = "2024"
 
 [dependencies]
+starview_common.workspace = true
 hex.workspace = true
 reqwest.workspace = true
 thiserror.workspace = true

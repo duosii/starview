@@ -20,7 +20,6 @@ pub mod header_value {
     pub const CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
     pub const DEVICE_NAME: &str = "stella";
     pub const APP_VERSION: &str = "1.8.0";
-    pub const DEVICE: &str = "2";
     pub const FLASH_VERSION: &str = "33,1,1,620";
 }
 
@@ -36,7 +35,6 @@ impl Headers {
         headers.insert_str(header_name::CONTENT_TYPE, header_value::CONTENT_TYPE)?;
         headers.insert_str(header_name::DEVICE_NAME, header_value::DEVICE_NAME)?;
         headers.insert_str(header_name::APP_VERSION, header_value::APP_VERSION)?;
-        headers.insert_str(header_name::DEVICE, header_value::DEVICE)?;
         headers.insert_str(header_name::FLASH_VERSION, header_value::FLASH_VERSION)?;
 
         Ok(headers)

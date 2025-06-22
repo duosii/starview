@@ -1,6 +1,5 @@
 [package]
-name = "starview_cli"
-version = "0.1.0"
+name = "starview_core"
 edition = "2024"
 
 [dependencies]
@@ -9,7 +8,5 @@ starview_net.workspace = true
 starview_patch.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-clap.workspace = true
-anstyle.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

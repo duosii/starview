@@ -1,19 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-pub enum AssetSize {
-    Full,
-    Short
-}
-
-impl ToString for AssetSize {
-    fn to_string(&self) -> String {
-        match self {
-            AssetSize::Full => "fulfill".into(),
-            AssetSize::Short => "shortened".into()
-        }
-    }
-}
-
 #[derive(Debug, Deserialize)]
 pub struct DataHeaders {
     pub short_udid: u32,
@@ -133,8 +119,8 @@ impl GetAssetPathRequest {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetAssetPathResponseInfo {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssetPathsInfo {
     pub client_asset_version: String,
     pub target_asset_version: String,
     pub eventual_target_asset_version: String,
@@ -143,35 +129,35 @@ pub struct GetAssetPathResponseInfo {
 }
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AssetPathArchive {
     pub location: String,
     pub size: u64,
     pub sha256: String
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetAssetPathResponseFull {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssetPathsFull {
     pub version: String,
     pub archive: Vec<AssetPathArchive>
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetAssetPathResponseDiff {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssetPathDiff {
     pub version: String,
     pub original_version: String,
     pub archive: Vec<AssetPathArchive>
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetAssetPathResponse {
-    pub info: GetAssetPathResponseInfo,
-    pub full: GetAssetPathResponseFull,
-    pub diff: Vec<GetAssetPathResponseDiff>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssetPaths {
+    pub info: AssetPathsInfo,
+    pub full: AssetPathsFull,
+    pub diff: Vec<AssetPathDiff>,
     pub asset_version_hash: String
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GetAssetVersionInfoRequest {
     pub asset_version: String,
     pub viewer_id: u32
@@ -183,8 +169,8 @@ impl GetAssetVersionInfoRequest {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct GetAssetVersionInfoResponse {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AssetVersionInfo {
     pub base_url: String,
     pub files_list: String,
     pub total_size: u64,

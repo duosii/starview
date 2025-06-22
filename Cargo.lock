@@ -1580,6 +1580,7 @@ name = "starview"
 version = "0.1.0"
 dependencies = [
  "starview_cli",
+ "tokio",
 ]
 
 [[package]]
@@ -1588,8 +1589,33 @@ version = "0.1.0"
 dependencies = [
  "anstyle",
  "clap",
+ "serde",
+ "serde_json",
+ "starview_common",
+ "starview_net",
  "starview_patch",
  "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "starview_common"
+version = "0.0.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
+name = "starview_core"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "starview_common",
+ "starview_net",
+ "starview_patch",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -1602,6 +1628,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "sha1",
+ "starview_common",
  "thiserror",
  "tokio",
  "url",

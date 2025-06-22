@@ -1,0 +1,6 @@
+[package]
+name = "starview_common"
+edition = "2024"
+
+[dependencies]
+clap.workspace = true

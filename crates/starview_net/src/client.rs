@@ -1,13 +1,19 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{str::FromStr};
 
 use reqwest::{Client, RequestBuilder, header::HeaderValue};
+use starview_common::enums::{AssetSize, DeviceType};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    api_url, crypto::{decode_base64_msgpack, encode_base64_msgpack, get_request_checksum}, headers::{header_name, Headers}, models::{
-        ApiResponse, AssetSize, GetAssetPathRequest, GetAssetPathResponse, GetAssetVersionInfoRequest, GetAssetVersionInfoResponse, LoadRequest, LoadResponse, SignupRequest, SignupResponse
-    }, Error
+    Error, api_url,
+    crypto::{decode_base64_msgpack, encode_base64_msgpack, get_request_checksum},
+    headers::{Headers, header_name},
+    models::{
+        ApiResponse, GetAssetPathRequest, AssetPaths,
+        GetAssetVersionInfoRequest, AssetVersionInfo, LoadRequest, LoadResponse,
+        SignupRequest, SignupResponse,
+    },
 };
 
 /// API client that interacts with the game's servers.
@@ -35,48 +41,8 @@ pub struct WafuriAPIClient {
 }
 
 impl WafuriAPIClient {
-    fn from_uuid_opt_token(uuid: Uuid, login_token: Option<String>) -> Result<Self, Error> {
-        let uuid = uuid.to_string().to_uppercase();
-
-        // initialize headers
-        let mut headers = Headers::new()?;
-        headers.insert_str(header_name::UDID, &uuid)?;
-
-        let mut client = Self {
-            uuid,
-            short_uuid: None,
-            login_token: None,
-            viewer_id: None,
-            headers,
-            client: Client::new(),
-            api_host: Url::from_str(api_url::API_HOST)?,
-        };
-
-        if let Some(login_token) = login_token {
-            client.set_login_token(login_token)?;
-        }
-
-        Ok(client)
-    }
-
-    /// Creates a new `WafuriAPIClient` using the provided
-    /// user ID and login token.
-    pub fn from_uuid_login_token(uuid: Uuid, login_token: String) -> Result<Self, Error> {
-        Self::from_uuid_opt_token(uuid, Some(login_token))
-    }
-
-    /// Creates a new WafuriAPIClient for the provided user ID.
-    ///
-    /// This client will not be logged in.
-    pub fn from_uuid(uuid: Uuid) -> Result<Self, Error> {
-        Self::from_uuid_opt_token(uuid, None)
-    }
-
-    /// Creates a new WafuriAPIClient with a random user ID.
-    ///
-    /// This client will not be logged in.
-    pub fn new() -> Result<Self, Error> {
-        Self::from_uuid(Uuid::new_v4())
+    pub fn builder() -> WafuriAPIClientBuilder {
+        WafuriAPIClientBuilder::new()
     }
 
     /// Convenience method initializing a [`reqwest::async_impl::request::RequestBuilder`].
@@ -185,7 +151,8 @@ impl WafuriAPIClient {
         &self,
         target_asset_version: &str,
         asset_size: AssetSize,
-    ) -> Result<Option<GetAssetPathResponse>, Error> {
+        device_type: DeviceType
+    ) -> Result<Option<AssetPaths>, Error> {
         if let Some(viewer_id) = self.viewer_id {
             let request = self
                 .build_post(
@@ -195,12 +162,13 @@ impl WafuriAPIClient {
                         viewer_id,
                     ))?,
                 )?
-                .header(header_name::ASSET_SIZE, asset_size.to_string());
+                .header(header_name::ASSET_SIZE, asset_size.to_string())
+                .header(header_name::DEVICE, device_type.to_string());
 
             match request.send().await?.error_for_status() {
                 Ok(response) => {
                     let base64 = response.text().await?;
-                    let load_response: ApiResponse<GetAssetPathResponse> =
+                    let load_response: ApiResponse<AssetPaths> =
                         decode_base64_msgpack(&base64)?;
                     Ok(Some(load_response.data))
                 }
@@ -215,17 +183,20 @@ impl WafuriAPIClient {
     pub async fn get_asset_version_info(
         &self,
         asset_version: &str,
-    ) -> Result<Option<GetAssetVersionInfoResponse>, Error> {
+    ) -> Result<Option<AssetVersionInfo>, Error> {
         if let Some(viewer_id) = self.viewer_id {
             let request = self.build_post(
                 self.api_host.join(api_url::ASSET_VERSION_INFO)?,
-                encode_base64_msgpack(&GetAssetVersionInfoRequest::new(asset_version.into(), viewer_id))?,
+                encode_base64_msgpack(&GetAssetVersionInfoRequest::new(
+                    asset_version.into(),
+                    viewer_id,
+                ))?,
             )?;
 
             match request.send().await?.error_for_status() {
                 Ok(response) => {
                     let base64 = response.text().await?;
-                    let load_response: ApiResponse<GetAssetVersionInfoResponse> =
+                    let load_response: ApiResponse<AssetVersionInfo> =
                         decode_base64_msgpack(&base64)?;
                     Ok(Some(load_response.data))
                 }
@@ -237,23 +208,111 @@ impl WafuriAPIClient {
     }
 }
 
+pub struct WafuriAPIClientBuilder {
+    uuid: Option<String>,
+    short_uuid: Option<u32>,
+    login_token: Option<String>,
+    viewer_id: Option<u32>,
+    api_host: Option<Url>,
+}
+
+impl WafuriAPIClientBuilder {
+    pub fn new() -> Self {
+        Self {
+            uuid: None,
+            short_uuid: None,
+            login_token: None,
+            viewer_id: None,
+            api_host: None,
+        }
+    }
+
+    /// Sets this API Client's user ID
+    pub fn uuid(mut self, uuid: String) -> Self {
+        self.uuid = Some(uuid);
+        self
+    }
+
+    /// Sets the user ID that was provided by the game server
+    pub fn short_uuid(mut self, short_uuid: u32) -> Self {
+        self.short_uuid = Some(short_uuid);
+        self
+    }
+
+    /// Sets the login token that will be used to make authenticated requests
+    pub fn login_token(mut self, login_token: String) -> Self {
+        self.login_token = Some(login_token);
+        self
+    }
+
+    /// Sets the session token that will be used by this API client
+    pub fn viewer_id(mut self, viewer_id: u32) -> Self {
+        self.viewer_id = Some(viewer_id);
+        self
+    }
+
+    /// The URL that the API client will communicate with
+    pub fn api_host(mut self, api_host: Url) -> Self {
+        self.api_host = Some(api_host);
+        self
+    }
+
+    /// Attempts to build a WafuriAPIClient
+    ///
+    /// If a uuid was not provided previously, a random one will be generated
+    ///
+    /// If an API host was not provided, the default one will be used
+    pub fn build(self) -> Result<WafuriAPIClient, Error> {
+        let uuid = self
+            .uuid
+            .unwrap_or_else(|| Uuid::new_v4().to_string().to_uppercase());
+
+        let mut headers = Headers::new()?;
+        headers.insert_str(header_name::UDID, &uuid)?;
+
+        let mut api_client = WafuriAPIClient {
+            uuid,
+            short_uuid: None,
+            login_token: None,
+            viewer_id: self.viewer_id,
+            headers,
+            client: Client::new(),
+            api_host: self.api_host.unwrap_or(Url::from_str(api_url::API_HOST)?),
+        };
+
+        if let Some(short_uuid) = self.short_uuid {
+            api_client.set_short_uuid(short_uuid)?;
+        }
+        if let Some(login_token) = self.login_token {
+            api_client.set_login_token(login_token)?;
+        }
+
+        Ok(api_client)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn example() {
-        let mut client = WafuriAPIClient::new().unwrap();
-        let signup_response = client.signup().await.unwrap();
-        let load_response = client.load().await.unwrap().unwrap();
-        let asset_paths_full = client
-            .get_asset_path(&load_response.available_asset_version, AssetSize::Full)
-            .await
+    #[test]
+    fn test_api_client_builder() {
+        let uuid: String = "my-uuid".into();
+        let short_uuid: u32 = 218921312;
+        let login_token: String = "login-token".into();
+        let viewer_id: u32 = 890659012;
+
+        let client = WafuriAPIClient::builder()
+            .uuid(uuid.clone())
+            .short_uuid(short_uuid)
+            .login_token(login_token.clone())
+            .viewer_id(viewer_id)
+            .build()
             .unwrap();
-        let asset_version_info = client
-            .get_asset_version_info(&load_response.available_asset_version)
-            .await
-            .unwrap();
-        println!("{:?}", asset_version_info);
+
+        assert_eq!(client.uuid, uuid);
+        assert_eq!(client.short_uuid, Some(short_uuid));
+        assert_eq!(client.login_token, Some(login_token));
+        assert_eq!(client.viewer_id, Some(viewer_id));
     }
 }
