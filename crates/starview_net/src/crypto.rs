@@ -54,7 +54,7 @@ mod tests {
     fn test_encode_decode_base64_msgpack() {
         let example_struct = ExampleStruct {
             name: "stella".into(),
-            level: 254
+            level: 254,
         };
         let encoded = encode_base64_msgpack(&example_struct).unwrap();
         let decoded: ExampleStruct = decode_base64_msgpack(&encoded).unwrap();

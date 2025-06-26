@@ -4,7 +4,10 @@ mod subcommands;
 
 use clap::{Parser, Subcommand};
 
-use crate::{color::get_clap_styles, subcommands::{fetch, patch}};
+use crate::{
+    color::get_clap_styles,
+    subcommands::{fetch, patch},
+};
 
 pub use error::Error;
 
@@ -15,7 +18,7 @@ enum Commands {
     Patch(patch::Args),
 
     /// Download files from the game's server
-    Fetch(fetch::FetchArgs)
+    Fetch(fetch::FetchArgs),
 }
 
 #[derive(Debug, Parser)]

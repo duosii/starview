@@ -1,9 +1,13 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use clap::Parser;
 use starview_common::enums::AssetSize;
+use starview_core::fetch::{FetchConfig, Fetcher};
 use starview_net::client::WafuriAPIClient;
-use tokio::{fs::{create_dir_all, File}, io::AsyncWriteExt};
+use tokio::{
+    fs::{File, create_dir_all},
+    io::AsyncWriteExt,
+};
 
 use crate::Error;
 
@@ -15,10 +19,14 @@ pub struct Args {
     #[arg(long)]
     asset_version: Option<String>,
 
-    out_path: String
+    out_path: String,
 }
 
 pub async fn fetch_path(args: Args) -> Result<(), Error> {
+    let config = FetchConfig::new(None, None, None);
+    let mut fetcher = Fetcher::new(config).await?;
+
+    fetcher.get_latest_asset_info().await?;
     // let mut client = WafuriAPIClient::builder().build()?;
     // client.signup().await?;
 

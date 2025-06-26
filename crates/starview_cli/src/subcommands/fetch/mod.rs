@@ -1,6 +1,6 @@
 mod path;
 
-use clap::{Subcommand, Args};
+use clap::{Args, Subcommand};
 
 use crate::Error;
 
@@ -19,5 +19,6 @@ pub struct FetchArgs {
 pub async fn fetch(args: FetchArgs) -> Result<(), Error> {
     match args.command {
         Commands::Path(args) => path::fetch_path(args),
-    }.await
+    }
+    .await
 }

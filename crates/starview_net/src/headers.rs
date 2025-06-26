@@ -19,7 +19,7 @@ pub mod header_value {
         "Mozilla/5.0 (Android; U; en-US) AppleWebKit/533.19.4 (KHTML, like Gecko) AdobeAIR/33.1";
     pub const CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
     pub const DEVICE_NAME: &str = "stella";
-    pub const APP_VERSION: &str = "1.8.0";
+    pub const APP_VERSION: &str = "1.8.1";
     pub const FLASH_VERSION: &str = "33,1,1,620";
 }
 

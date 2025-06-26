@@ -6,8 +6,11 @@ pub enum Error {
     Io(#[from] std::io::Error),
 
     #[error("patch error: {0}")]
-    Patch(#[from] starview_patch::Error),
+    StarviewPatch(#[from] starview_patch::Error),
 
     #[error("game API error: {0}")]
-    GameApi(#[from] starview_net::Error),
+    StarviewNet(#[from] starview_net::Error),
+
+    #[error("core error: {0}")]
+    StarviewCore(#[from] starview_core::Error),
 }

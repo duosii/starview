@@ -1,7 +1,10 @@
-use std::{str::FromStr};
+use std::str::FromStr;
 
 use reqwest::{Client, RequestBuilder, header::HeaderValue};
-use starview_common::enums::{AssetSize, DeviceType};
+use starview_common::{
+    OptionalBuilder,
+    enums::{AssetSize, DeviceType},
+};
 use url::Url;
 use uuid::Uuid;
 
@@ -10,16 +13,15 @@ use crate::{
     crypto::{decode_base64_msgpack, encode_base64_msgpack, get_request_checksum},
     headers::{Headers, header_name},
     models::{
-        ApiResponse, GetAssetPathRequest, AssetPaths,
-        GetAssetVersionInfoRequest, AssetVersionInfo, LoadRequest, LoadResponse,
-        SignupRequest, SignupResponse,
+        ApiResponse, AssetPaths, AssetVersionInfo, GetAssetPathRequest, GetAssetVersionInfoRequest,
+        LoadRequest, LoadResponse, SignupRequest, SignupResponse,
     },
 };
 
 /// API client that interacts with the game's servers.
 pub struct WafuriAPIClient {
     /// The API user's ID.
-    uuid: String,
+    pub uuid: String,
 
     /// The user's ID that was assigned by the server. Not known until login.
     short_uuid: Option<u32>,
@@ -66,6 +68,10 @@ impl WafuriAPIClient {
         headers.insert(
             header_name::PARAM,
             HeaderValue::from_str(&request_checksum)?,
+        );
+        headers.insert(
+            header_name::DEVICE,
+            HeaderValue::from_str(&DeviceType::Android.to_string())?,
         );
 
         Ok(self.client.post(url).headers(headers).body(body))
@@ -151,7 +157,7 @@ impl WafuriAPIClient {
         &self,
         target_asset_version: &str,
         asset_size: AssetSize,
-        device_type: DeviceType
+        device_type: DeviceType,
     ) -> Result<Option<AssetPaths>, Error> {
         if let Some(viewer_id) = self.viewer_id {
             let request = self
@@ -162,14 +168,12 @@ impl WafuriAPIClient {
                         viewer_id,
                     ))?,
                 )?
-                .header(header_name::ASSET_SIZE, asset_size.to_string())
-                .header(header_name::DEVICE, device_type.to_string());
+                .header(header_name::ASSET_SIZE, asset_size.to_string());
 
             match request.send().await?.error_for_status() {
                 Ok(response) => {
                     let base64 = response.text().await?;
-                    let load_response: ApiResponse<AssetPaths> =
-                        decode_base64_msgpack(&base64)?;
+                    let load_response: ApiResponse<AssetPaths> = decode_base64_msgpack(&base64)?;
                     Ok(Some(load_response.data))
                 }
                 Err(err) => Err(Error::InvalidRequest(err.to_string())),
@@ -291,6 +295,8 @@ impl WafuriAPIClientBuilder {
     }
 }
 
+impl OptionalBuilder for WafuriAPIClientBuilder {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -314,5 +320,16 @@ mod tests {
         assert_eq!(client.short_uuid, Some(short_uuid));
         assert_eq!(client.login_token, Some(login_token));
         assert_eq!(client.viewer_id, Some(viewer_id));
+    }
+
+    #[tokio::test]
+    async fn test() {
+        let mut client = WafuriAPIClient::builder()
+            .uuid("5EC06C20-301C-40E4-61C7-684E3CA709855502".into())
+            .build()
+            .unwrap();
+
+        let signup = client.signup().await.unwrap();
+        println!("{:?}", signup);
     }
 }

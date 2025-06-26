@@ -1592,6 +1592,7 @@ dependencies = [
  "serde",
  "serde_json",
  "starview_common",
+ "starview_core",
  "starview_net",
  "starview_patch",
  "thiserror",
@@ -1616,6 +1617,7 @@ dependencies = [
  "starview_patch",
  "thiserror",
  "tokio",
+ "url",
 ]
 
 [[package]]

@@ -21,5 +21,5 @@ pub enum Error {
     Base64Decode(#[from] base64::DecodeError),
 
     #[error("invalid network request: {0}")]
-    InvalidRequest(String)
+    InvalidRequest(String),
 }

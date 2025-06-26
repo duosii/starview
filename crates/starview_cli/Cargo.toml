@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 starview_common.workspace = true
+starview_core.workspace = true
 starview_net.workspace = true
 starview_patch.workspace = true
 serde.workspace = true

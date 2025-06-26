@@ -1,6 +1,15 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
+pub enum Error {
+    #[error("fetch cache error: {0}")]
+    FetchCache(#[from] FetchCacheError),
+
+    #[error("network error: {0}")]
+    StarviewNet(#[from] starview_net::Error),
+}
+
+#[derive(Debug, Error)]
 pub enum FetchCacheError {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
