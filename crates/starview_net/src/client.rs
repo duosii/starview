@@ -5,6 +5,7 @@ use starview_common::{
     OptionalBuilder,
     enums::{AssetSize, DeviceType},
 };
+use tokio::try_join;
 use url::Url;
 use uuid::Uuid;
 
@@ -40,6 +41,9 @@ pub struct WafuriAPIClient {
 
     /// The game server's base API url
     api_host: Url,
+
+    /// The device type that this client will be
+    device_type: DeviceType,
 }
 
 impl WafuriAPIClient {
@@ -68,10 +72,6 @@ impl WafuriAPIClient {
         headers.insert(
             header_name::PARAM,
             HeaderValue::from_str(&request_checksum)?,
-        );
-        headers.insert(
-            header_name::DEVICE,
-            HeaderValue::from_str(&DeviceType::Android.to_string())?,
         );
 
         Ok(self.client.post(url).headers(headers).body(body))
@@ -148,12 +148,7 @@ impl WafuriAPIClient {
         }
     }
 
-    /// Fetches asset paths from the game server
-    ///
-    /// If the client is not logged in, this will return None
-    ///
-    /// On success, returns the AssetPaths for the provided `target_asset_version` and `asset_size`
-    pub async fn get_asset_path(
+    async fn get_asset_path_device_type(
         &self,
         target_asset_version: &str,
         asset_size: AssetSize,
@@ -168,7 +163,8 @@ impl WafuriAPIClient {
                         viewer_id,
                     ))?,
                 )?
-                .header(header_name::ASSET_SIZE, asset_size.to_string());
+                .header(header_name::ASSET_SIZE, asset_size.to_string())
+                .header(header_name::DEVICE, device_type.to_string());
 
             match request.send().await?.error_for_status() {
                 Ok(response) => {
@@ -180,6 +176,47 @@ impl WafuriAPIClient {
             }
         } else {
             Ok(None)
+        }
+    }
+
+    /// Fetches asset paths from the game server
+    ///
+    /// If the client is not logged in, this will return None
+    ///
+    /// If this client's device type was set to be `All`, this performs two requests to get the necessary information
+    ///
+    /// On success, returns the AssetPaths for the provided `target_asset_version` and `asset_size`
+    pub async fn get_asset_path(
+        &self,
+        target_asset_version: &str,
+        asset_size: AssetSize,
+    ) -> Result<Option<AssetPaths>, Error> {
+        match self.device_type {
+            DeviceType::Android | DeviceType::Ios => {
+                self.get_asset_path_device_type(target_asset_version, asset_size, self.device_type)
+                    .await
+            }
+            DeviceType::All => {
+                let android_future = self.get_asset_path_device_type(
+                    target_asset_version,
+                    asset_size,
+                    DeviceType::Android,
+                );
+                let ios_future = self.get_asset_path_device_type(
+                    target_asset_version,
+                    asset_size,
+                    DeviceType::Ios,
+                );
+
+                let (android, ios) = try_join!(android_future, ios_future)?;
+
+                Ok(match (android, ios) {
+                    (None, None) => None,
+                    (None, Some(ios)) => Some(ios),
+                    (Some(android), None) => Some(android),
+                    (Some(android), Some(ios)) => Some(android.extend(ios)),
+                })
+            }
         }
     }
 
@@ -218,6 +255,7 @@ pub struct WafuriAPIClientBuilder {
     login_token: Option<String>,
     viewer_id: Option<u32>,
     api_host: Option<Url>,
+    device_type: Option<DeviceType>,
 }
 
 impl WafuriAPIClientBuilder {
@@ -228,6 +266,7 @@ impl WafuriAPIClientBuilder {
             login_token: None,
             viewer_id: None,
             api_host: None,
+            device_type: None,
         }
     }
 
@@ -261,6 +300,12 @@ impl WafuriAPIClientBuilder {
         self
     }
 
+    /// Sets the device type that this client will use
+    pub fn device_type(mut self, device_type: DeviceType) -> Self {
+        self.device_type = Some(device_type);
+        self
+    }
+
     /// Attempts to build a WafuriAPIClient
     ///
     /// If a uuid was not provided previously, a random one will be generated
@@ -270,18 +315,17 @@ impl WafuriAPIClientBuilder {
         let uuid = self
             .uuid
             .unwrap_or_else(|| Uuid::new_v4().to_string().to_uppercase());
-
-        let mut headers = Headers::new()?;
-        headers.insert_str(header_name::UDID, &uuid)?;
+        let device_type = self.device_type.unwrap_or(DeviceType::Android);
 
         let mut api_client = WafuriAPIClient {
+            headers: Headers::new(&uuid)?,
             uuid,
             short_uuid: None,
             login_token: None,
             viewer_id: self.viewer_id,
-            headers,
             client: Client::new(),
             api_host: self.api_host.unwrap_or(Url::from_str(api_url::API_HOST)?),
+            device_type,
         };
 
         if let Some(short_uuid) = self.short_uuid {
@@ -320,16 +364,5 @@ mod tests {
         assert_eq!(client.short_uuid, Some(short_uuid));
         assert_eq!(client.login_token, Some(login_token));
         assert_eq!(client.viewer_id, Some(viewer_id));
-    }
-
-    #[tokio::test]
-    async fn test() {
-        let mut client = WafuriAPIClient::builder()
-            .uuid("5EC06C20-301C-40E4-61C7-684E3CA709855502".into())
-            .build()
-            .unwrap();
-
-        let signup = client.signup().await.unwrap();
-        println!("{:?}", signup);
     }
 }

@@ -1,4 +1,5 @@
 use reqwest::header::{HeaderMap, HeaderValue, InvalidHeaderValue};
+use starview_common::enums::DeviceType;
 
 pub mod header_name {
     pub const USER_AGENT: &str = "user-agent";
@@ -19,7 +20,7 @@ pub mod header_value {
         "Mozilla/5.0 (Android; U; en-US) AppleWebKit/533.19.4 (KHTML, like Gecko) AdobeAIR/33.1";
     pub const CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
     pub const DEVICE_NAME: &str = "stella";
-    pub const APP_VERSION: &str = "1.8.1";
+    pub const ANDROID_APP_VERSION: &str = "1.8.5";
     pub const FLASH_VERSION: &str = "33,1,1,620";
 }
 
@@ -28,13 +29,15 @@ pub mod header_value {
 pub struct Headers(pub HeaderMap<HeaderValue>);
 
 impl Headers {
-    pub fn new() -> Result<Self, InvalidHeaderValue> {
+    pub fn new(uuid: &str) -> Result<Self, InvalidHeaderValue> {
         let mut headers = Self::default();
 
+        headers.insert_str(header_name::UDID, uuid)?;
+        headers.insert_str(header_name::DEVICE, &DeviceType::Android.to_string())?;
         headers.insert_str(header_name::USER_AGENT, header_value::USER_AGENT)?;
         headers.insert_str(header_name::CONTENT_TYPE, header_value::CONTENT_TYPE)?;
         headers.insert_str(header_name::DEVICE_NAME, header_value::DEVICE_NAME)?;
-        headers.insert_str(header_name::APP_VERSION, header_value::APP_VERSION)?;
+        headers.insert_str(header_name::APP_VERSION, header_value::ANDROID_APP_VERSION)?;
         headers.insert_str(header_name::FLASH_VERSION, header_value::FLASH_VERSION)?;
 
         Ok(headers)
@@ -66,12 +69,12 @@ mod tests {
 
     #[test]
     fn new_headers() {
-        assert!(Headers::new().is_ok())
+        assert!(Headers::new("udid").is_ok())
     }
 
     #[test]
     fn headers_insert_str() {
-        let mut headers = Headers::new().unwrap();
+        let mut headers = Headers::new("udid").unwrap();
         let header_value: &str = "param";
         headers
             .insert_str(header_name::PARAM, header_value)

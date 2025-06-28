@@ -1,9 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use starview_common::{
-    OptionalBuilder,
-    enums::{AssetSize, DeviceType},
-};
+use starview_common::{OptionalBuilder, enums::AssetSize};
 use starview_net::{
     client::WafuriAPIClient,
     models::{AssetPaths, AssetVersionInfo},
@@ -12,11 +9,8 @@ use starview_net::{
 use crate::{Error, cache::models::FetchCache, fetch::config::FetchConfig};
 
 /// Interface for communicating with the game's API
-///
-/// TODO: only write cache on drop, store cache path in FetchCache itself
 pub struct Fetcher {
     client: WafuriAPIClient,
-    device_type: DeviceType,
     cache_path: PathBuf,
     cache: FetchCache,
 }
@@ -42,21 +36,14 @@ impl Fetcher {
             .map(config.api_host, |builder, api_host| {
                 builder.api_host(api_host)
             })
+            .map(config.device_type, |builder, device_type| {
+                builder.device_type(device_type)
+            })
             .build()?;
         client.signup().await?;
 
-        // create new cache if it didn't already exist
-        let cache = if let Some(cache) = cache {
-            cache
-        } else {
-            let new_cache = FetchCache::new(client.uuid.clone());
-            new_cache.write(&config.cache_path).await?;
-            new_cache
-        };
-
         Ok(Self {
-            cache,
-            device_type: config.device_type,
+            cache: cache.unwrap_or(FetchCache::new(client.uuid.clone())),
             cache_path: config.cache_path,
             client,
         })
@@ -72,7 +59,6 @@ impl Fetcher {
         {
             // cache contains both asset_paths and version info
             if asset_paths.info.client_asset_version == asset_version {
-                println!("skip");
                 return Ok((asset_version_info.clone(), asset_paths.clone()));
             }
         }
@@ -81,7 +67,7 @@ impl Fetcher {
         // or the cache was outdated
         let mut asset_paths = self
             .client
-            .get_asset_path(&asset_version, AssetSize::Full, self.device_type)
+            .get_asset_path(&asset_version, AssetSize::Full)
             .await?
             .ok_or(starview_net::Error::InvalidRequest(
                 "could not load asset paths".into(),

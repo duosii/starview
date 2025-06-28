@@ -13,4 +13,7 @@ pub enum Error {
 
     #[error("core error: {0}")]
     StarviewCore(#[from] starview_core::Error),
+
+    #[error("serde JSON error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
 }

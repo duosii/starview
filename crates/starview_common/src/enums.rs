@@ -15,7 +15,7 @@ impl ToString for AssetSize {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum DeviceType {
     Ios,
     Android,

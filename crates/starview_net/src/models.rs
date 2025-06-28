@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -159,6 +161,79 @@ pub struct AssetPaths {
     pub full: AssetPathsFull,
     pub diff: Vec<AssetPathDiff>,
     pub asset_version_hash: String,
+}
+
+impl AssetPaths {
+    /// Merges two AssetPaths together
+    ///
+    /// Will only merge differences between the two
+    pub fn extend(self, with: AssetPaths) -> Self {
+        let mut full_archives_map: HashMap<String, AssetPathArchive> = HashMap::new();
+        for archive in self
+            .full
+            .archive
+            .into_iter()
+            .chain(with.full.archive.into_iter())
+        {
+            full_archives_map
+                .entry(archive.sha256.clone())
+                .or_insert(archive);
+        }
+
+        let mut diff_map: HashMap<String, AssetPathsDiffMapEntry> = HashMap::new();
+        for diff in self.diff.into_iter().chain(with.diff.into_iter()) {
+            let diff_map_entry =
+                diff_map
+                    .entry(diff.version.clone())
+                    .or_insert(AssetPathsDiffMapEntry::new(
+                        diff.version.clone(),
+                        diff.original_version.clone(),
+                    ));
+            for archive in diff.archive {
+                diff_map_entry
+                    .archive_map
+                    .entry(archive.sha256.clone())
+                    .or_insert(archive);
+            }
+        }
+
+        Self {
+            info: self.info,
+            full: AssetPathsFull {
+                version: self.full.version,
+                archive: full_archives_map.into_values().collect(),
+            },
+            diff: diff_map.into_values().map(|entry| entry.into()).collect(),
+            asset_version_hash: self.asset_version_hash,
+        }
+    }
+}
+
+/// Struct used when merging two AssetPaths together to keep track of diffs
+struct AssetPathsDiffMapEntry {
+    pub version: String,
+    pub original_version: String,
+    pub archive_map: HashMap<String, AssetPathArchive>,
+}
+
+impl AssetPathsDiffMapEntry {
+    fn new(version: String, original_version: String) -> Self {
+        Self {
+            version,
+            original_version,
+            archive_map: HashMap::new(),
+        }
+    }
+}
+
+impl Into<AssetPathDiff> for AssetPathsDiffMapEntry {
+    fn into(self) -> AssetPathDiff {
+        AssetPathDiff {
+            version: self.version,
+            original_version: self.original_version,
+            archive: self.archive_map.into_values().collect(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

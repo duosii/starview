@@ -1,10 +1,11 @@
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use starview_common::fs::write_file;
 use starview_net::models::{AssetPaths, AssetVersionInfo};
 use tokio::{fs::File, io::AsyncReadExt};
 
-use crate::{error::FetchCacheError, fs::write_file};
+use crate::error::FetchCacheError;
 
 /// Cache that stores information related to the game server, such as user ID, asset paths, and more.
 #[derive(Clone, Serialize, Deserialize)]
@@ -15,9 +16,8 @@ pub struct FetchCache {
 }
 
 impl FetchCache {
-
     /// Creates a new FetchCache with the provided udid
-    /// 
+    ///
     /// `version_info` and `asset_paths` will be None
     pub fn new(udid: String) -> Self {
         Self {
@@ -29,7 +29,7 @@ impl FetchCache {
 
     /// Loads a FetchCache from the provided path
     pub async fn from_path(path: impl AsRef<Path>) -> Result<Self, FetchCacheError> {
-        let mut cache_file = File::open(path).await?;
+        let mut cache_file = File::open(&path).await?;
         let cache_file_metadata = cache_file.metadata().await?;
         let mut file_bytes = Vec::with_capacity(cache_file_metadata.len().try_into()?);
         cache_file.read_to_end(&mut file_bytes).await?;

@@ -1,4 +1,5 @@
 pub mod enums;
+pub mod fs;
 
 pub trait OptionalBuilder: Sized {
     fn map<T>(self, value: Option<T>, f: impl FnOnce(Self, T) -> Self) -> Self {

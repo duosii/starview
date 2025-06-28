@@ -1,13 +1,6 @@
-use std::path::PathBuf;
-
 use clap::Parser;
-use starview_common::enums::AssetSize;
+use starview_common::{enums::{AssetSize, DeviceType}, fs::write_file};
 use starview_core::fetch::{FetchConfig, Fetcher};
-use starview_net::client::WafuriAPIClient;
-use tokio::{
-    fs::{File, create_dir_all},
-    io::AsyncWriteExt,
-};
 
 use crate::Error;
 
@@ -19,38 +12,20 @@ pub struct Args {
     #[arg(long)]
     asset_version: Option<String>,
 
+    #[arg(long, short, value_enum, default_value_t = DeviceType::Android)]
+    device: DeviceType,
+
     out_path: String,
 }
 
 pub async fn fetch_path(args: Args) -> Result<(), Error> {
-    let config = FetchConfig::new(None, None, None);
+    let config = FetchConfig::new(None, Some(args.device), None);
     let mut fetcher = Fetcher::new(config).await?;
 
-    fetcher.get_latest_asset_info().await?;
-    // let mut client = WafuriAPIClient::builder().build()?;
-    // client.signup().await?;
+    let (asset_version_info, asset_paths) = fetcher.get_latest_asset_info().await?;
 
-    // let asset_version = if let Some(asset_version) = args.asset_version {
-    //     asset_version
-    // } else {
-    //     let player_data = client.load().await?.unwrap();
-    //     player_data.available_asset_version
-    // };
-
-    // let paths = client.get_asset_path(&asset_version, args.asset_size).await?.unwrap();
-
-    // // write file
-    // let out_path = PathBuf::from(args.out_path);
-    // if let Some(parent) = out_path.parent() {
-    //     create_dir_all(parent).await?;
-    // }
-    // let mut out_file = File::options()
-    //     .write(true)
-    //     .create(true)
-    //     .truncate(true)
-    //     .open(out_path)
-    //     .await?;
-    // out_file.write_all(&serde_json::to_vec_pretty(&paths).unwrap()).await?;
+    let asset_paths = serde_json::to_vec_pretty(&asset_paths)?;
+    write_file(&asset_paths, args.out_path).await?;
 
     Ok(())
 }
