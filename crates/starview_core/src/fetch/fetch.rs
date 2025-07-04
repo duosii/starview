@@ -25,6 +25,8 @@ impl Fetcher {
             None
         };
 
+        let strin = String::new();
+
         // build client
         let client = if let Some(cache) = &cache {
             WafuriAPIClient::builder().uuid(cache.udid.clone())
