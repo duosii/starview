@@ -1626,6 +1626,7 @@ name = "starview_common"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "serde",
  "tokio",
 ]
 

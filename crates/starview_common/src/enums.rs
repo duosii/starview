@@ -1,4 +1,5 @@
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum AssetSize {
@@ -15,7 +16,7 @@ impl ToString for AssetSize {
     }
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum, Serialize, Deserialize, PartialEq)]
 pub enum DeviceType {
     Ios,
     Android,

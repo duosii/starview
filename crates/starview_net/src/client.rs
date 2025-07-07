@@ -43,7 +43,7 @@ pub struct WafuriAPIClient {
     api_host: Url,
 
     /// The device type that this client will be
-    device_type: DeviceType,
+    pub device_type: DeviceType,
 }
 
 impl WafuriAPIClient {

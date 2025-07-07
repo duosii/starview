@@ -22,15 +22,7 @@ pub async fn fetch_path(args: Args) -> Result<(), Error> {
     let config = FetchConfig::new(None, Some(args.device), None);
     let mut fetcher = Fetcher::new(config).await?;
 
-    let (asset_version_info, asset_paths) = fetcher.get_latest_asset_info().await?;
-
-    let dl_config = DownloadConfig::builder()
-        .out_path("downloaded-files/")
-        .url_strip_prefix("/patch/gf/upload_assets".into())
-        .urls(asset_paths.full.archive.iter().map(|archive| url::Url::parse(&archive.location).unwrap()).collect())
-        .build();
-    let (downloader, _) = Downloader::new(dl_config);
-    downloader.download().await?;
+    let (_, asset_paths) = fetcher.get_latest_asset_info().await?;
 
     let asset_paths = serde_json::to_vec_pretty(&asset_paths)?;
     write_file(&asset_paths, args.out_path).await?;

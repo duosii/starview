@@ -33,14 +33,19 @@ impl Downloader {
     }
 
     /// Downloads a file from `url` and saves it to `out_path`
-    async fn download_file(client: Client, url: Url, out_path: PathBuf) -> Result<Url, Error> {
+    /// 
+    /// Returns the url and the number of bytes that were downloaded
+    async fn download_file(client: Client, url: Url, out_path: PathBuf) -> Result<(Url, u64), Error> {
         let request = client.get(url.as_str());
 
         match request.send().await?.error_for_status() {
             Ok(response) => {
                 let bytes = response.bytes().await?;
                 write_file(&bytes, out_path).await?;
-                Ok(url)
+                Ok((
+                    url,
+                    bytes.len().try_into()?
+                ))
             }
             Err(err) => Err(Error::StarviewNet(starview_net::Error::InvalidRequest(
                 err.to_string(),
@@ -116,12 +121,16 @@ impl Downloader {
                     .await;
 
                     // send file download/error state update
-                    if download_result.is_ok() {
-                        state_sender.send_replace(DownloadState::FileDownload());
-                    } else {
-                        state_sender.send_replace(DownloadState::DownloadError());
+                    match download_result {
+                        Ok((url, bytes_size)) => {
+                            state_sender.send_replace(DownloadState::FileDownload(bytes_size));
+                            Ok(url)
+                        },
+                        Err(err) => {
+                            state_sender.send_replace(DownloadState::DownloadError());
+                            Err(err)
+                        }
                     }
-                    download_result
                 }
             })
             .buffer_unordered(self.config.concurrency)
@@ -153,7 +162,7 @@ struct DownloadAction {
 
 impl Action for DownloadAction {
     type Future = BoxFuture<'static, Result<Self::Item, Self::Error>>;
-    type Item = Url;
+    type Item = (Url, u64);
     type Error = Error;
 
     fn run(&mut self) -> Self::Future {

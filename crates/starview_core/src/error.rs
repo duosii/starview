@@ -12,7 +12,16 @@ pub enum Error {
     StarviewNet(#[from] starview_net::Error),
 
     #[error("reqwest network error: {0}")]
-    Reqwest(#[from] reqwest::Error)
+    Reqwest(#[from] reqwest::Error),
+
+    #[error("error when converting integer type: {0}")]
+    TryFromInt(#[from] std::num::TryFromIntError),
+
+    #[error("error when parsing string as url: {0}")]
+    UrlParse(#[from] url::ParseError),
+
+    #[error("provided path '{0}' is not a directory")]
+    NotDirectory(String),
 }
 
 #[derive(Debug, Error)]
