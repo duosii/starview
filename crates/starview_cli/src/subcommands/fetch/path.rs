@@ -4,7 +4,6 @@ use starview_common::{
     fs::write_file,
 };
 use starview_core::{
-    download::{DownloadConfig, Downloader},
     fetch::{
         FetchConfig, Fetcher,
         state::{FetchAssetInfoState, FetchState},
@@ -45,18 +44,11 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
                     println!("Getting most recent asset version...");
                     progress_bar = Some(ProgressBar::spinner());
                 }
-                FetchAssetInfoState::GetAssetPaths => {
+                FetchAssetInfoState::GetAssetInfo => {
                     if let Some(progress_bar) = &progress_bar {
                         progress_bar.finish_and_clear();
                     }
-                    println!("Downloading asset paths...");
-                    progress_bar = Some(ProgressBar::spinner());
-                }
-                FetchAssetInfoState::GetAssetVersionInfo => {
-                    if let Some(progress_bar) = &progress_bar {
-                        progress_bar.finish_and_clear();
-                    }
-                    println!("Downloading asset version info...");
+                    println!("Downloading asset info...");
                     progress_bar = Some(ProgressBar::spinner());
                 }
                 FetchAssetInfoState::Finish => {

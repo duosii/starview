@@ -9,10 +9,19 @@ use starview_net::{
     client::WafuriAPIClient,
     models::{AssetPaths, AssetVersionInfo},
 };
-use tokio::sync::watch;
+use tokio::{sync::watch, try_join};
 use url::Url;
 
-use crate::{cache::models::FetchCache, download::{DownloadConfig, Downloader}, error::FetchCacheError, fetch::{state::{FetchAssetInfoState, FetchState}, FetchConfig}, Error};
+use crate::{
+    Error,
+    cache::models::FetchCache,
+    download::{DownloadConfig, Downloader},
+    error::FetchCacheError,
+    fetch::{
+        FetchConfig,
+        state::{FetchAssetInfoState, FetchState},
+    },
+};
 
 const DOWNLOAD_URL_STRIP_PREFIX: &str = "/patch/gf/upload_assets";
 
@@ -86,44 +95,44 @@ impl Fetcher {
             if (asset_paths.info.client_asset_version == asset_version)
                 && (self.cache.device_type == self.client.device_type)
             {
-                self.state_sender.send_replace(FetchState::AssetInfo(FetchAssetInfoState::Finish));
+                self.state_sender
+                    .send_replace(FetchState::AssetInfo(FetchAssetInfoState::Finish));
                 return Ok((version_info.clone(), asset_paths.clone()));
             }
         }
 
         // update cache by fetching the most recent asset paths & asset version info
-        self.state_sender.send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetPaths));
-        let mut asset_paths = self
-            .client
-            .get_asset_path(&asset_version, AssetSize::Full)
-            .await?
-            .ok_or(starview_net::Error::InvalidRequest(
-                "could not load asset paths".into(),
-            ))?;
-        asset_paths.info.client_asset_version = asset_paths.info.target_asset_version.clone();
+        self.state_sender
+            .send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetInfo));
+        let asset_paths_future = self.client.get_asset_path(&asset_version, AssetSize::Full);
+        let asset_version_info_future = self.client.get_asset_version_info(&asset_version);
 
-        self.state_sender.send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetVersionInfo));
-        let asset_version_info = self
-            .client
-            .get_asset_version_info(&asset_version)
-            .await?
-            .ok_or(starview_net::Error::InvalidRequest(
-                "could not load asset version info".into(),
-            ))?;
+        if let (Some(mut asset_paths), Some(asset_version_info)) =
+            try_join!(asset_paths_future, asset_version_info_future)?
+        {
+            asset_paths.info.client_asset_version = asset_paths.info.target_asset_version.clone();
 
-        // update cache
-        self.cache.asset_paths = Some(asset_paths.clone());
-        self.cache.version_info = Some(asset_version_info.clone());
-        self.write_cache().await?;
+            // update cache
+            self.cache.asset_paths = Some(asset_paths.clone());
+            self.cache.version_info = Some(asset_version_info.clone());
+            self.cache.device_type = self.client.device_type;
+            self.write_cache().await?;
 
-        self.state_sender.send_replace(FetchState::AssetInfo(FetchAssetInfoState::Finish));
+            self.state_sender
+                .send_replace(FetchState::AssetInfo(FetchAssetInfoState::Finish));
 
-        Ok((asset_version_info, asset_paths))
+            Ok((asset_version_info, asset_paths))
+        } else {
+            Err(Error::StarviewNet(starview_net::Error::InvalidRequest(
+                "could not get asset paths or asset version info".into(),
+            )))
+        }
     }
 
     /// Fetches the latest version info and asset paths from the game server.
     pub async fn get_latest_asset_info(&mut self) -> Result<(AssetVersionInfo, AssetPaths), Error> {
-        self.state_sender.send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetVersion));
+        self.state_sender
+            .send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetVersion));
         let available_asset_version = {
             let user_data =
                 self.client

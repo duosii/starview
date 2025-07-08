@@ -5,10 +5,8 @@ use crate::download::state::DownloadState;
 pub enum FetchAssetInfoState {
     /// The most recent asset version is being queried from the server
     GetAssetVersion,
-    /// The asset paths are being acquired from the server
-    GetAssetPaths,
-    /// The asset version info is being acquired from the server
-    GetAssetVersionInfo,
+    /// The asset paths and version info are being acquired from the server
+    GetAssetInfo,
     /// The asset info has been successfully retrieved
     Finish,
 }
