@@ -28,7 +28,7 @@ impl ToString for DeviceType {
         match self {
             DeviceType::Ios => "1".into(),
             DeviceType::Android => "2".into(),
-            DeviceType::All => "3".into()
+            DeviceType::All => "3".into(),
         }
     }
 }

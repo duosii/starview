@@ -15,7 +15,7 @@ pub struct FetchCache {
     pub version_info: Option<AssetVersionInfo>,
     pub asset_paths: Option<AssetPaths>,
     /// A hash set containing the sha256 of assets that have already been downloaded
-    pub downloaded_asset_hashes: HashSet<String>
+    pub downloaded_asset_hashes: HashSet<String>,
 }
 
 impl FetchCache {
@@ -28,7 +28,7 @@ impl FetchCache {
             device_type,
             version_info: None,
             asset_paths: None,
-            downloaded_asset_hashes: HashSet::new()
+            downloaded_asset_hashes: HashSet::new(),
         }
     }
 

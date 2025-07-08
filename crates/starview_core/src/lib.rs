@@ -1,7 +1,7 @@
 mod cache;
 
+pub mod download;
 pub mod error;
 pub mod fetch;
-pub mod download;
 
 pub use error::Error;

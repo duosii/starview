@@ -13,7 +13,11 @@ pub struct FetchConfig {
 }
 
 impl FetchConfig {
-    pub fn new(cache_path: Option<&str>, device_type: Option<DeviceType>, api_host: Option<Url>) -> Self {
+    pub fn new(
+        cache_path: Option<&str>,
+        device_type: Option<DeviceType>,
+        api_host: Option<Url>,
+    ) -> Self {
         Self {
             cache_path: PathBuf::from(cache_path.unwrap_or(DEFAULT_CACHE_PATH)),
             device_type: device_type,

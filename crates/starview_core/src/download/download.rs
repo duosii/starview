@@ -33,19 +33,20 @@ impl Downloader {
     }
 
     /// Downloads a file from `url` and saves it to `out_path`
-    /// 
+    ///
     /// Returns the url and the number of bytes that were downloaded
-    async fn download_file(client: Client, url: Url, out_path: PathBuf) -> Result<(Url, u64), Error> {
+    async fn download_file(
+        client: Client,
+        url: Url,
+        out_path: PathBuf,
+    ) -> Result<(Url, u64), Error> {
         let request = client.get(url.as_str());
 
         match request.send().await?.error_for_status() {
             Ok(response) => {
                 let bytes = response.bytes().await?;
                 write_file(&bytes, out_path).await?;
-                Ok((
-                    url,
-                    bytes.len().try_into()?
-                ))
+                Ok((url, bytes.len().try_into()?))
             }
             Err(err) => Err(Error::StarviewNet(starview_net::Error::InvalidRequest(
                 err.to_string(),
@@ -125,7 +126,7 @@ impl Downloader {
                         Ok((url, bytes_size)) => {
                             state_sender.send_replace(DownloadState::FileDownload(bytes_size));
                             Ok(url)
-                        },
+                        }
                         Err(err) => {
                             state_sender.send_replace(DownloadState::DownloadError());
                             Err(err)

@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum DownloadState {
     /// The download has not started
     NotStarted(),
@@ -9,5 +9,5 @@ pub enum DownloadState {
     /// An error ocurred when downloading a file
     DownloadError(),
     /// The download process completed
-    Finish()
+    Finish(),
 }

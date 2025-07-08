@@ -22,4 +22,3 @@ pub async fn write_file(data: &[u8], path: impl AsRef<Path>) -> Result<(), std::
     out_file.write_all(data).await?;
     Ok(())
 }
-

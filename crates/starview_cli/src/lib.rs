@@ -1,5 +1,6 @@
 mod color;
 mod error;
+mod progress;
 mod subcommands;
 
 use clap::{Parser, Subcommand};

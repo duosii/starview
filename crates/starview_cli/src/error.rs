@@ -16,4 +16,7 @@ pub enum Error {
 
     #[error("serde JSON error: {0}")]
     SerdeJson(#[from] serde_json::Error),
+
+    #[error("error when joining threads: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 }
