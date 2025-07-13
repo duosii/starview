@@ -20,7 +20,7 @@ pub struct Downloader {
 
 impl Downloader {
     pub fn new(config: DownloadConfig) -> (Self, watch::Receiver<DownloadState>) {
-        let (state_sender, recv) = watch::channel(DownloadState::NotStarted());
+        let (state_sender, recv) = watch::channel(DownloadState::NotStarted);
 
         (
             Self {
@@ -128,7 +128,7 @@ impl Downloader {
                             Ok(url)
                         }
                         Err(err) => {
-                            state_sender.send_replace(DownloadState::DownloadError());
+                            state_sender.send_replace(DownloadState::DownloadError);
                             Err(err)
                         }
                     }
@@ -149,7 +149,7 @@ impl Downloader {
         }
 
         // send finish state
-        self.state_sender.send_replace(DownloadState::Finish());
+        self.state_sender.send_replace(DownloadState::Finish);
 
         Ok((downloaded_urls, download_errors))
     }

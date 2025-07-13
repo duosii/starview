@@ -16,6 +16,8 @@ pub enum FetchAssetInfoState {
 pub enum DownloadAssetsState {
     /// Asset info is being retrieved
     FetchAssetInfo,
+    /// The provided number of bytes will be downloaded
+    DownloadStart(u64),
     /// A download state update
     Download(DownloadState),
     /// The assets download process has completed

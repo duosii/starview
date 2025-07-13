@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fs::create_dir_all,
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -7,19 +8,19 @@ use std::{
 use starview_common::{OptionalBuilder, enums::AssetSize};
 use starview_net::{
     client::WafuriAPIClient,
-    models::{AssetPaths, AssetVersionInfo},
+    models::{AssetPathArchive, AssetPaths, AssetVersionInfo},
 };
-use tokio::{sync::watch, try_join};
+use tokio::{join, sync::watch, try_join};
 use url::Url;
 
 use crate::{
     Error,
     cache::models::FetchCache,
-    download::{DownloadConfig, Downloader},
+    download::{DownloadConfig, Downloader, state::DownloadState},
     error::FetchCacheError,
     fetch::{
         FetchConfig,
-        state::{FetchAssetInfoState, FetchState},
+        state::{DownloadAssetsState, FetchAssetInfoState, FetchState},
     },
 };
 
@@ -153,36 +154,69 @@ impl Fetcher {
     ///
     /// Inserts `hash` into `new_downloaded_asset_hashes`
     /// if it was already in `downloaded_asset_hashes`
+    ///
+    /// Returns the number of bytes that should be downloaded
     fn insert_url_if_not_downloaded(
-        hash: String,
-        url_str: &str,
+        archive: AssetPathArchive,
         downloaded_asset_hashes: &HashSet<String>,
         to_download_urls: &mut Vec<Url>,
         url_hash_map: &mut HashMap<Url, String>,
         new_downloaded_asset_hashes: &mut HashSet<String>,
-    ) -> Result<(), url::ParseError> {
+    ) -> Result<u64, url::ParseError> {
+        let hash = archive.sha256;
         if !downloaded_asset_hashes.contains(&hash) {
-            let url = Url::from_str(url_str)?;
+            let url = Url::from_str(&archive.location)?;
             url_hash_map.insert(url.clone(), hash);
             to_download_urls.push(url);
+            Ok(archive.size)
         } else {
             new_downloaded_asset_hashes.insert(hash);
+            Ok(0)
         }
+    }
 
-        Ok(())
+    /// Watches a DownloadState receiver for any changes,
+    /// bridging them into a FetchState::DownloadAssets state update
+    /// for this Fetcher.
+    async fn bridge_download_state(
+        mut download_recv: watch::Receiver<DownloadState>,
+        state_sender: watch::Sender<FetchState>,
+    ) {
+        while download_recv.changed().await.is_ok() {
+            let download_state = *download_recv.borrow_and_update();
+            state_sender.send_replace(FetchState::DownloadAssets(DownloadAssetsState::Download(
+                download_state,
+            )));
+            // break if the download state is Finish
+            if download_state == DownloadState::Finish {
+                break;
+            }
+        }
     }
 
     /// Downloads the latest assets from the game server to the provided directory `out_path`
-    pub async fn download_assets(&mut self, out_path: impl AsRef<Path>) -> Result<(), Error> {
+    pub async fn download_assets(
+        &mut self,
+        out_path: impl AsRef<Path>,
+        concurrency: usize,
+    ) -> Result<(), Error> {
         // confirm that out_path is a directory
         let out_path = out_path.as_ref();
         if !out_path.is_dir() {
-            return Err(Error::NotDirectory(
-                out_path.as_os_str().to_string_lossy().to_string(),
-            ));
+            // create path to directory if it doesn't exist
+            if out_path.try_exists()? {
+                return Err(Error::NotDirectory(
+                    out_path.as_os_str().to_string_lossy().to_string(),
+                ));
+            } else {
+                create_dir_all(out_path)?;
+            }
         }
 
         // extract info from FetchCache or get it from the game servers
+        self.state_sender.send_replace(FetchState::DownloadAssets(
+            DownloadAssetsState::FetchAssetInfo,
+        ));
         let (_, asset_paths) = self.get_latest_asset_info().await?;
         let downloaded_asset_hashes = &self.cache.downloaded_asset_hashes;
 
@@ -190,11 +224,11 @@ impl Fetcher {
         let mut to_download_urls: Vec<Url> = Vec::new();
         let mut url_hash_map: HashMap<Url, String> = HashMap::new();
         let mut new_downloaded_asset_hashes: HashSet<String> = HashSet::new();
+        let mut total_bytes: u64 = 0;
 
         for archive in asset_paths.full.archive {
-            Self::insert_url_if_not_downloaded(
-                archive.sha256,
-                &archive.location,
+            total_bytes += Self::insert_url_if_not_downloaded(
+                archive,
                 &downloaded_asset_hashes,
                 &mut to_download_urls,
                 &mut url_hash_map,
@@ -203,9 +237,8 @@ impl Fetcher {
         }
         for diff in asset_paths.diff {
             for archive in diff.archive {
-                Self::insert_url_if_not_downloaded(
-                    archive.sha256,
-                    &archive.location,
+                total_bytes += Self::insert_url_if_not_downloaded(
+                    archive,
                     &downloaded_asset_hashes,
                     &mut to_download_urls,
                     &mut url_hash_map,
@@ -214,14 +247,28 @@ impl Fetcher {
             }
         }
 
+        // send download start state with total download bytes
+        self.state_sender.send_replace(FetchState::DownloadAssets(
+            DownloadAssetsState::DownloadStart(total_bytes),
+        ));
+
         // create downloader
         let download_config = DownloadConfig::builder()
             .urls(to_download_urls)
             .out_path(out_path)
             .url_strip_prefix(DOWNLOAD_URL_STRIP_PREFIX.into())
+            .concurrency(concurrency)
             .build();
         let (downloader, recv) = Downloader::new(download_config);
-        let (downloaded_urls, download_errors) = downloader.download().await?;
+
+        // listen to the downloader state recv
+        // and bridge to FetchState
+        let watch_future = Self::bridge_download_state(recv, self.state_sender.clone());
+        let download_future = downloader.download();
+
+        // join download futures
+        let (_, download_result) = join!(watch_future, download_future);
+        let (downloaded_urls, _) = download_result?;
 
         // insert downloaded urls into new downloaded asset hashes hashset
         for downloaded_url in downloaded_urls {
@@ -233,6 +280,8 @@ impl Fetcher {
         // replace downloaded asset hashes in cache & write
         self.cache.downloaded_asset_hashes = new_downloaded_asset_hashes;
         self.write_cache().await?;
+        self.state_sender
+            .send_replace(FetchState::DownloadAssets(DownloadAssetsState::Finish));
 
         Ok(())
     }

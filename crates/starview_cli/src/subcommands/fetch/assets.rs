@@ -1,8 +1,11 @@
 use clap::Parser;
-use starview_common::{enums::DeviceType, fs::write_file};
-use starview_core::fetch::{
-    FetchConfig, Fetcher,
-    state::{FetchAssetInfoState, FetchState},
+use starview_common::enums::DeviceType;
+use starview_core::{
+    download::state::DownloadState,
+    fetch::{
+        FetchConfig, Fetcher,
+        state::{DownloadAssetsState, FetchState},
+    },
 };
 use tokio::{sync::watch, time::Instant};
 
@@ -19,16 +22,20 @@ pub struct Args {
     #[arg(long)]
     asset_version: Option<String>,
 
-    /// The device type that paths will be acquired for
+    /// The device type that assets will be acquired for
     #[arg(long, short, value_enum, default_value_t = DeviceType::All)]
     device: DeviceType,
 
     /// Path to the starview cache,
     /// "starview.cache" by default
-    #[arg(long, short, value_enum)]
+    #[arg(long)]
     cache_path: Option<String>,
 
-    /// Where to output the paths file
+    /// The maximum number of files to download at once
+    #[arg(long, short, default_value_t = 5)]
+    concurrency: usize,
+
+    /// Path to the directory where assets will be downloaded
     out_path: String,
 }
 
@@ -39,30 +46,33 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
 
     while recv.changed().await.is_ok() {
         let fetch_state = *recv.borrow_and_update();
-        if let FetchState::AssetInfo(state) = fetch_state {
+        if let FetchState::DownloadAssets(state) = fetch_state {
             match state {
-                FetchAssetInfoState::GetAssetVersion => {
+                DownloadAssetsState::FetchAssetInfo => {
                     println!(
-                        "{}[1/2] {}Getting most recent asset version...",
+                        "{}[1/2] {}Getting asset information...",
                         color::TEXT_VARIANT.render_fg(),
                         color::TEXT.render_fg()
                     );
-                    progress_bar = Some(ProgressBar::spinner());
                 }
-                FetchAssetInfoState::GetAssetInfo => {
-                    if let Some(progress_bar) = &progress_bar {
-                        progress_bar.finish_and_clear();
+                DownloadAssetsState::DownloadStart(total_bytes) => {
+                    println!(
+                        "{}[2/2] {}Downloading assets...",
+                        color::TEXT_VARIANT.render_fg(),
+                        color::TEXT.render_fg()
+                    );
+                    progress_bar = Some(ProgressBar::download(total_bytes));
+                }
+                DownloadAssetsState::Download(download_state) => {
+                    if let DownloadState::FileDownload(file_size) = download_state {
+                        if let Some(progress) = &progress_bar {
+                            progress.inc(file_size);
+                        }
                     }
-                    println!(
-                        "{}[2/2] {}Downloading asset info...",
-                        color::TEXT_VARIANT.render_fg(),
-                        color::TEXT.render_fg()
-                    );
-                    progress_bar = Some(ProgressBar::spinner());
                 }
-                FetchAssetInfoState::Finish => {
-                    if let Some(progress_bar) = &progress_bar {
-                        progress_bar.finish_and_clear();
+                DownloadAssetsState::Finish => {
+                    if let Some(progress) = &progress_bar {
+                        progress.finish_and_clear();
                     }
                     break;
                 }
@@ -71,7 +81,7 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
     }
 }
 
-pub async fn fetch_path(args: Args) -> Result<(), Error> {
+pub async fn fetch_assets(args: Args) -> Result<(), Error> {
     let fetch_start_instant = Instant::now();
     let config = FetchConfig::new(args.cache_path, Some(args.device), None);
     let (mut fetcher, state_recv) = Fetcher::new(config).await?;
@@ -82,15 +92,14 @@ pub async fn fetch_path(args: Args) -> Result<(), Error> {
         Some(tokio::spawn(watch_fetch_state(state_recv)))
     };
 
-    let (_, asset_paths) = fetcher.get_latest_asset_info().await?;
-
-    let asset_paths = serde_json::to_vec_pretty(&asset_paths)?;
-    write_file(&asset_paths, &args.out_path).await?;
+    fetcher
+        .download_assets(&args.out_path, args.concurrency)
+        .await?;
 
     if let Some(watcher) = state_watcher {
         watcher.await?;
         println!(
-            "{}Successfully wrote asset paths to '{}' in {:?}.{}",
+            "{}Successfully downloaded assets to '{}' in {:?}.{}",
             color::SUCCESS.render_fg(),
             args.out_path,
             Instant::now().duration_since(fetch_start_instant),
