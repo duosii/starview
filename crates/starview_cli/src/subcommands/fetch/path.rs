@@ -6,7 +6,7 @@ use starview_core::fetch::{
 };
 use tokio::{sync::watch, time::Instant};
 
-use crate::{Error, color, progress::ProgressBar};
+use crate::{color, progress::{FinishAndClear, ProgressBar}, Error};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -50,9 +50,7 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
                     progress_bar = Some(ProgressBar::spinner());
                 }
                 FetchAssetInfoState::GetAssetInfo => {
-                    if let Some(progress_bar) = &progress_bar {
-                        progress_bar.finish_and_clear();
-                    }
+                    progress_bar.finish_and_clear();
                     println!(
                         "{}[2/2] {}Downloading asset info...",
                         color::TEXT_VARIANT.render_fg(),
@@ -61,9 +59,7 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
                     progress_bar = Some(ProgressBar::spinner());
                 }
                 FetchAssetInfoState::Finish => {
-                    if let Some(progress_bar) = &progress_bar {
-                        progress_bar.finish_and_clear();
-                    }
+                    progress_bar.finish_and_clear();
                     break;
                 }
             }

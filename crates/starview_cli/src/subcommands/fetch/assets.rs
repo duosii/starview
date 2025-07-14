@@ -9,7 +9,7 @@ use starview_core::{
 };
 use tokio::{sync::watch, time::Instant};
 
-use crate::{Error, color, progress::ProgressBar};
+use crate::{color, progress::{FinishAndClear, ProgressBar}, Error};
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -71,9 +71,7 @@ async fn watch_fetch_state(mut recv: watch::Receiver<FetchState>) {
                     }
                 }
                 DownloadAssetsState::Finish => {
-                    if let Some(progress) = &progress_bar {
-                        progress.finish_and_clear();
-                    }
+                    progress_bar.finish_and_clear();
                     break;
                 }
             }
