@@ -1,0 +1,74 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        os: [windows-latest]
+        include:
+          # - os: ubuntu-latest
+          #   artifact_name: starview
+          #   asset_name: starview-linux
+          #   android_build_tools_url: "https://dl.google.com/android/repository/build-tools_r34-linux.zip"
+          - os: windows-latest
+            artifact_name: starview.exe
+            asset_name: starview-windows
+            android_build_tools_url: "https://dl.google.com/android/repository/build-tools_r34-windows.zip"
+            ffdec_url: "https://github.com/jindrapetrik/jpexs-decompiler/releases/download/version24.0.1/ffdec_24.0.1.zip"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          cd target/release
+          mv ${{ matrix.artifact_name }} ${{ matrix.asset_name }}/${{ matrix.artifact_name }}
+
+      - name: Download and extract android build tools
+        shell: bash
+        run: |
+          mkdir -p ${{ matrix.asset_name }}/build-tools
+
+          curl -L "${{ matrix.android_build_tools_url }}" -o build-tools.zip
+          7z x build-tools.zip -o${{ matrix.asset_name }}/build-tools
+
+      - name: Download and extract FFDec
+        shell: bash
+        run: |
+          mkdir -p ${{ matrix.asset_name }}/ffdec
+
+          curl -L "${{ matrix.ffdec_url }}" -o ffdec.zip
+          7z x ffdec.zip -o${{ matrix.asset_name }}/ffdec
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: target/release/${{ matrix.asset_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
