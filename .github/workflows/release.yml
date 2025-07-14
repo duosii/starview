@@ -64,6 +64,8 @@ jobs:
 
           curl -L "${{ matrix.android_build_tools_url }}" -o build-tools.zip
           7z x build-tools.zip -o${{ matrix.asset_name }}/build-tools
+          mv ${{ matrix.asset_name }}/build-tools/android-14/* ${{ matrix.asset_name }}/build-tools
+          rm -f ${{ matrix.asset_name }}/build-tools/android-14
 
       - name: Download and extract FFDec
         shell: bash
