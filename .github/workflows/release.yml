@@ -47,6 +47,7 @@ jobs:
         shell: bash
         run: |
           cd target/release
+          mkdir -p ${{ matrix.asset_name }}
           mv ${{ matrix.artifact_name }} ${{ matrix.asset_name }}/${{ matrix.artifact_name }}
 
       - name: Download and extract android build tools
