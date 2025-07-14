@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::{
     Error,
@@ -59,7 +59,7 @@ impl Downloader {
     /// This function removes the host from `url` and appends it onto `out_dir`.
     ///
     /// If `strip_prefix` was provided, that prefix will be stripped from `url` before being appended.
-    fn get_url_out_path(url: &Url, out_dir: &PathBuf, strip_prefix: &Option<String>) -> PathBuf {
+    fn get_url_out_path(url: &Url, out_dir: &Path, strip_prefix: &Option<String>) -> PathBuf {
         let url_path = url.path();
 
         let stripped_url_path = strip_prefix

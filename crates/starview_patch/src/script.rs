@@ -31,7 +31,7 @@ impl ScriptPatcher {
             ));
         }
 
-        let paths = WalkDir::new(&patches_path)
+        let paths = WalkDir::new(patches_path)
             .min_depth(1)
             .max_depth(1)
             .into_iter()
@@ -100,14 +100,14 @@ impl ScriptPatcher {
             .iter()
             .filter_map(|path| {
                 path.file_stem()
-                    .and_then(|stem| Some(stem.to_string_lossy().to_string()))
+                    .map(|stem| stem.to_string_lossy().to_string())
             })
             .collect()
     }
 }
 
 /// Reads a file to a string
-fn read_file_to_string<'a>(path: &PathBuf) -> Result<String, std::io::Error> {
+fn read_file_to_string(path: &PathBuf) -> Result<String, std::io::Error> {
     let mut patch_file = File::open(path)?;
     let mut patch_file_string = String::new();
 

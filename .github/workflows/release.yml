@@ -43,11 +43,19 @@ jobs:
           command: build
           args: --release
 
-      - name: Rename binary
+      - name: Move binary
         shell: bash
         run: |
           mkdir -p ${{ matrix.asset_name }}
           mv target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}/${{ matrix.artifact_name }}
+
+      - name: Copy files to release folder
+        shell: bash
+        run: |
+          mkdir ${{ matrix.asset_name }}/patches
+          cp -r patches/* ${{ matrix.asset_name }}/patches
+
+          cp wf.keystore ${{ matrix.asset_name }}/wf.keystore
 
       - name: Download and extract android build tools
         shell: bash

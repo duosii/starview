@@ -38,11 +38,7 @@ impl Fetcher {
     /// Initializes a new Fetcher with the provided config.
     pub async fn new(config: FetchConfig) -> Result<(Self, watch::Receiver<FetchState>), Error> {
         // get cache
-        let cache = if let Ok(fetch_cache) = FetchCache::from_path(&config.cache_path).await {
-            Some(fetch_cache)
-        } else {
-            None
-        };
+        let cache = FetchCache::from_path(&config.cache_path).await.ok();
 
         // build client
         let client = if let Some(cache) = &cache {
@@ -68,7 +64,7 @@ impl Fetcher {
                 state_sender,
                 cache: cache.unwrap_or(FetchCache::new(
                     client.uuid.clone(),
-                    client.device_type.clone(),
+                    client.device_type,
                 )),
                 cache_path: config.cache_path,
                 client,
@@ -105,8 +101,8 @@ impl Fetcher {
         // update cache by fetching the most recent asset paths & asset version info
         self.state_sender
             .send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetInfo));
-        let asset_paths_future = self.client.get_asset_path(&asset_version, AssetSize::Full);
-        let asset_version_info_future = self.client.get_asset_version_info(&asset_version);
+        let asset_paths_future = self.client.get_asset_path(asset_version, AssetSize::Full);
+        let asset_version_info_future = self.client.get_asset_version_info(asset_version);
 
         if let (Some(mut asset_paths), Some(asset_version_info)) =
             try_join!(asset_paths_future, asset_version_info_future)?
@@ -229,7 +225,7 @@ impl Fetcher {
         for archive in asset_paths.full.archive {
             total_bytes += Self::insert_url_if_not_downloaded(
                 archive,
-                &downloaded_asset_hashes,
+                downloaded_asset_hashes,
                 &mut to_download_urls,
                 &mut url_hash_map,
                 &mut new_downloaded_asset_hashes,
@@ -239,7 +235,7 @@ impl Fetcher {
             for archive in diff.archive {
                 total_bytes += Self::insert_url_if_not_downloaded(
                     archive,
-                    &downloaded_asset_hashes,
+                    downloaded_asset_hashes,
                     &mut to_download_urls,
                     &mut url_hash_map,
                     &mut new_downloaded_asset_hashes,

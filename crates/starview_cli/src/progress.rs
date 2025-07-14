@@ -20,7 +20,6 @@ impl ProgressBar {
     /// Create a new progress spinner that automatically ticks every 100ms.
     pub fn spinner() -> indicatif::ProgressBar {
         let spinner = indicatif::ProgressBar::new_spinner();
-        spinner.finish_and_clear();
         spinner.enable_steady_tick(Duration::from_millis(100));
         spinner
     }

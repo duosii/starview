@@ -18,7 +18,7 @@ pub fn encode_base64_msgpack<T: Serialize>(to_encode: &T) -> Result<String, Erro
 /// 1. Decodes the string from base64 into msgpack bytes
 /// 2. Deserializes the msgpack bytes into the type
 pub fn decode_base64_msgpack<T: DeserializeOwned>(to_decode: &str) -> Result<T, Error> {
-    let base64_decoded_bytes = BASE64_STANDARD.decode(&to_decode)?;
+    let base64_decoded_bytes = BASE64_STANDARD.decode(to_decode)?;
     let msgpack_decoded = rmp_serde::from_slice(&base64_decoded_bytes)?;
     Ok(msgpack_decoded)
 }

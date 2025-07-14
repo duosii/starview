@@ -19,7 +19,7 @@ pub struct DownloadConfig {
 impl DownloadConfig {
     /// Creates a new DownloadConfigBuilder
     pub fn builder() -> DownloadConfigBuilder {
-        DownloadConfigBuilder::new()
+        DownloadConfigBuilder::default()
     }
 }
 
@@ -36,17 +36,12 @@ impl Default for DownloadConfig {
     }
 }
 
+#[derive(Default)]
 pub struct DownloadConfigBuilder {
     config: DownloadConfig,
 }
 
 impl DownloadConfigBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: DownloadConfig::default(),
-        }
-    }
-
     /// Sets the base time in milliseconds between retries
     pub fn retry_delay(mut self, delay_ms: u64) -> Self {
         self.config.retry_delay = delay_ms;

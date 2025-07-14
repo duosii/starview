@@ -1,7 +1,7 @@
 mod config;
-mod download;
+mod downloader;
 
 pub mod state;
 
 pub use config::DownloadConfig;
-pub use download::Downloader;
+pub use downloader::Downloader;

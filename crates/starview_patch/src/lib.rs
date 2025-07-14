@@ -32,7 +32,7 @@ fn apply_patch(old: &str, patch: patch::Patch) -> Result<String, Error> {
             for (hunk_line_n, hunk_line) in hunk.lines.iter().enumerate() {
                 match hunk_line {
                     Line::Add(new_line) => {
-                        new_lines.push(&new_line);
+                        new_lines.push(new_line);
                     }
                     Line::Remove(_) => {
                         if hunk_line_n != 0 {
@@ -40,7 +40,7 @@ fn apply_patch(old: &str, patch: patch::Patch) -> Result<String, Error> {
                         }
                     }
                     Line::Context(context_line) => {
-                        new_lines.push(&context_line);
+                        new_lines.push(context_line);
                         if hunk_line_n != 0 {
                             lines.next();
                         }

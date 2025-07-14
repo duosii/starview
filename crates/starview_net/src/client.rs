@@ -63,7 +63,7 @@ impl WafuriAPIClient {
         let url = url.into_url()?;
         let viewer_id = self
             .viewer_id
-            .and_then(|id| Some(id.to_string()))
+            .map(|id| id.to_string())
             .unwrap_or("".into());
         let request_checksum = get_request_checksum(&self.uuid, &viewer_id, url.path(), &body);
 

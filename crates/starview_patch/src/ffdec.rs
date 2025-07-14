@@ -90,9 +90,8 @@ impl FFDec {
 
         let errs: Vec<String> = String::from_utf8_lossy(&import_output.stderr)
             .lines()
-            .filter_map(|err| {
-                (err.contains("SEVERE") && !err.contains(IGNORE_ERROR)).then(|| err.to_string())
-            })
+            .filter(|&err| (err.contains("SEVERE") && !err.contains(IGNORE_ERROR)))
+            .map(|err| err.to_string())
             .collect();
 
         if !errs.is_empty() {

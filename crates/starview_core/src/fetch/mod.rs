@@ -1,7 +1,7 @@
 mod config;
-mod fetch;
+mod fetcher;
 
 pub mod state;
 
 pub use config::FetchConfig;
-pub use fetch::Fetcher;
+pub use fetcher::Fetcher;

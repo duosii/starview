@@ -20,7 +20,7 @@ impl FetchConfig {
     ) -> Self {
         Self {
             cache_path: PathBuf::from(cache_path.unwrap_or(DEFAULT_CACHE_PATH.into())),
-            device_type: device_type,
+            device_type,
             api_host,
         }
     }
