@@ -65,7 +65,7 @@ jobs:
           curl -L "${{ matrix.android_build_tools_url }}" -o build-tools.zip
           7z x build-tools.zip -o${{ matrix.asset_name }}/build-tools
           mv ${{ matrix.asset_name }}/build-tools/android-14/* ${{ matrix.asset_name }}/build-tools
-          rm -f ${{ matrix.asset_name }}/build-tools/android-14
+          rm -r ${{ matrix.asset_name }}/build-tools/android-14
 
       - name: Download and extract FFDec
         shell: bash
@@ -74,6 +74,9 @@ jobs:
 
           curl -L "${{ matrix.ffdec_url }}" -o ffdec.zip
           7z x ffdec.zip -o${{ matrix.asset_name }}/ffdec
+
+          # increase ffdec memory
+          sed 's/rem set FFDEC_MEMORY=1024m/set FFDEC_MEMORY=2048m/' ${{ matrix.asset_name }}/ffdec/ffdec.bat
 
       - name : Zip release folder
         shell: bash
