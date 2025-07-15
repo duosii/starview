@@ -12,7 +12,7 @@ use crate::error::FetchCacheError;
 pub struct FetchCache {
     pub device_type: DeviceType,
     pub udid: String,
-    pub version_info: Option<AssetVersionInfo>,
+    pub version_info: Vec<AssetVersionInfo>,
     pub asset_paths: Option<AssetPaths>,
     /// A hash set containing the sha256 of assets that have already been downloaded
     pub downloaded_asset_hashes: HashSet<String>,
@@ -26,7 +26,7 @@ impl FetchCache {
         Self {
             udid,
             device_type,
-            version_info: None,
+            version_info: Vec::new(),
             asset_paths: None,
             downloaded_asset_hashes: HashSet::new(),
         }

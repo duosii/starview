@@ -6,7 +6,10 @@ use starview_core::fetch::{
 };
 use tokio::{sync::watch, time::Instant};
 
-use crate::{color, progress::{FinishAndClear, ProgressBar}, Error};
+use crate::{
+    Error, color,
+    progress::{FinishAndClear, ProgressBar},
+};
 
 #[derive(Parser, Debug)]
 pub struct Args {

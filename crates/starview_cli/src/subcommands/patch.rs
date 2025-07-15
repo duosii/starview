@@ -1,6 +1,7 @@
 use std::{
     fs::{create_dir_all, remove_dir_all},
     path::PathBuf,
+    time::Instant,
 };
 
 use clap::Parser;
@@ -65,6 +66,8 @@ pub struct Args {
 }
 
 pub fn patch(args: Args) -> Result<(), Error> {
+    let patch_start_instant = Instant::now();
+
     // if out_path is a directory, append the default file name to the path
     let out_path = {
         let path = PathBuf::from(args.out_path);
@@ -142,6 +145,13 @@ pub fn patch(args: Args) -> Result<(), Error> {
         PathBuf::from(DEFAULT_KEYSTORE_PATH),
         DEFAULT_KEYSTORE_PASS,
     )?;
+
+    println!(
+        "{}Successfully patched apk in {:?}.{}",
+        color::SUCCESS.render_fg(),
+        Instant::now().duration_since(patch_start_instant),
+        color::TEXT.render_fg()
+    );
 
     Ok(())
 }

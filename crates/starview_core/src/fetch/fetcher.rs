@@ -20,11 +20,12 @@ use crate::{
     error::FetchCacheError,
     fetch::{
         FetchConfig,
-        state::{DownloadAssetsState, FetchAssetInfoState, FetchState},
+        state::{DownloadAssetsState, DownloadFilesListState, FetchAssetInfoState, FetchState},
     },
 };
 
 const DOWNLOAD_URL_STRIP_PREFIX: &str = "/patch/gf/upload_assets";
+const DOWNLOAD_FILES_LIST_URL_STRIP_PREFIX: &str = "/patch/gf/upload_assets/entities";
 
 /// Interface for communicating with the game's API
 pub struct Fetcher {
@@ -62,10 +63,7 @@ impl Fetcher {
         Ok((
             Self {
                 state_sender,
-                cache: cache.unwrap_or(FetchCache::new(
-                    client.uuid.clone(),
-                    client.device_type,
-                )),
+                cache: cache.unwrap_or(FetchCache::new(client.uuid.clone(), client.device_type)),
                 cache_path: config.cache_path,
                 client,
             },
@@ -82,8 +80,8 @@ impl Fetcher {
     pub async fn get_asset_info(
         &mut self,
         asset_version: &str,
-    ) -> Result<(AssetVersionInfo, AssetPaths), Error> {
-        if let (Some(asset_paths), Some(version_info)) =
+    ) -> Result<(Vec<AssetVersionInfo>, AssetPaths), Error> {
+        if let (Some(asset_paths), version_info) =
             (&self.cache.asset_paths, &self.cache.version_info)
         {
             // skip updating if:
@@ -104,14 +102,14 @@ impl Fetcher {
         let asset_paths_future = self.client.get_asset_path(asset_version, AssetSize::Full);
         let asset_version_info_future = self.client.get_asset_version_info(asset_version);
 
-        if let (Some(mut asset_paths), Some(asset_version_info)) =
+        if let (Some(mut asset_paths), asset_version_info) =
             try_join!(asset_paths_future, asset_version_info_future)?
         {
             asset_paths.info.client_asset_version = asset_paths.info.target_asset_version.clone();
 
             // update cache
             self.cache.asset_paths = Some(asset_paths.clone());
-            self.cache.version_info = Some(asset_version_info.clone());
+            self.cache.version_info = asset_version_info.clone();
             self.cache.device_type = self.client.device_type;
             self.write_cache().await?;
 
@@ -127,7 +125,9 @@ impl Fetcher {
     }
 
     /// Fetches the latest version info and asset paths from the game server.
-    pub async fn get_latest_asset_info(&mut self) -> Result<(AssetVersionInfo, AssetPaths), Error> {
+    pub async fn get_latest_asset_info(
+        &mut self,
+    ) -> Result<(Vec<AssetVersionInfo>, AssetPaths), Error> {
         self.state_sender
             .send_replace(FetchState::AssetInfo(FetchAssetInfoState::GetAssetVersion));
         let available_asset_version = {
@@ -196,18 +196,7 @@ impl Fetcher {
         out_path: impl AsRef<Path>,
         concurrency: usize,
     ) -> Result<(), Error> {
-        // confirm that out_path is a directory
-        let out_path = out_path.as_ref();
-        if !out_path.is_dir() {
-            // create path to directory if it doesn't exist
-            if out_path.try_exists()? {
-                return Err(Error::NotDirectory(
-                    out_path.as_os_str().to_string_lossy().to_string(),
-                ));
-            } else {
-                create_dir_all(out_path)?;
-            }
-        }
+        validate_dir(&out_path)?;
 
         // extract info from FetchCache or get it from the game servers
         self.state_sender.send_replace(FetchState::DownloadAssets(
@@ -281,4 +270,69 @@ impl Fetcher {
 
         Ok(())
     }
+
+    /// Downloads file list CSVs to the provided `out_path`.
+    ///
+    /// A maximum of two files will be downloaded
+    /// depending on the DeviceType provided to this fetcher
+    pub async fn download_files_list(&mut self, out_path: impl AsRef<Path>) -> Result<(), Error> {
+        validate_dir(&out_path)?;
+
+        self.state_sender
+            .send_replace(FetchState::DownloadFilesList(
+                DownloadFilesListState::FetchAssetInfo,
+            ));
+        let (asset_version_info, _) = self.get_latest_asset_info().await?;
+
+        let mut to_download_urls: Vec<Url> = Vec::new();
+        for info in asset_version_info.iter().take(2) {
+            let url = Url::from_str(&info.files_list)?;
+            to_download_urls.push(url);
+        }
+
+        // create downloader
+        self.state_sender
+            .send_replace(FetchState::DownloadFilesList(
+                DownloadFilesListState::DownloadStart(to_download_urls.len().try_into().unwrap()),
+            ));
+        let download_config = DownloadConfig::builder()
+            .urls(to_download_urls)
+            .out_path(out_path)
+            .url_strip_prefix(DOWNLOAD_FILES_LIST_URL_STRIP_PREFIX.into())
+            .concurrency(2)
+            .build();
+        let (downloader, recv) = Downloader::new(download_config);
+
+        // listen to the downloader state recv
+        // and bridge to FetchState
+        let watch_future = Self::bridge_download_state(recv, self.state_sender.clone());
+        let download_future = downloader.download();
+
+        // join download futures
+        let (_, download_result) = join!(watch_future, download_future);
+        download_result?;
+
+        self.state_sender
+            .send_replace(FetchState::DownloadFilesList(
+                DownloadFilesListState::Finish,
+            ));
+
+        Ok(())
+    }
+}
+
+fn validate_dir(dir_path: impl AsRef<Path>) -> Result<(), Error> {
+    // confirm that out_path is a directory
+    let dir_path = dir_path.as_ref();
+    if !dir_path.is_dir() {
+        // create path to directory if it doesn't exist
+        if dir_path.try_exists()? {
+            return Err(Error::NotDirectory(
+                dir_path.as_os_str().to_string_lossy().to_string(),
+            ));
+        } else {
+            create_dir_all(dir_path)?;
+        }
+    }
+    Ok(())
 }

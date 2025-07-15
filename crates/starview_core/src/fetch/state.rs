@@ -24,10 +24,24 @@ pub enum DownloadAssetsState {
     Finish,
 }
 
+/// The state of a files list download
+#[derive(Clone, Copy, Debug)]
+pub enum DownloadFilesListState {
+    /// Asset info is being retrieved
+    FetchAssetInfo,
+    /// The provided number of files will be downloaded
+    DownloadStart(u64),
+    /// A download state update
+    Download(DownloadState),
+    /// The assets download process has completed
+    Finish,
+}
+
 /// The current state of a [`crate::fetch::Fetcher`]
 #[derive(Clone, Copy, Debug)]
 pub enum FetchState {
     None,
     AssetInfo(FetchAssetInfoState),
     DownloadAssets(DownloadAssetsState),
+    DownloadFilesList(DownloadFilesListState),
 }

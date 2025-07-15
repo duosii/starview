@@ -1,4 +1,5 @@
 mod assets;
+mod list;
 mod path;
 
 use clap::{Args, Subcommand};
@@ -11,6 +12,8 @@ enum Commands {
     Path(path::Args),
     /// Fetches the game's assets
     Assets(assets::Args),
+    /// Fetches files lists
+    List(list::Args),
 }
 
 #[derive(Debug, Args)]
@@ -23,5 +26,6 @@ pub async fn fetch(args: FetchArgs) -> Result<(), Error> {
     match args.command {
         Commands::Path(args) => path::fetch_path(args).await,
         Commands::Assets(args) => assets::fetch_assets(args).await,
+        Commands::List(args) => list::fetch_files_list(args).await,
     }
 }

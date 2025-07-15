@@ -61,10 +61,7 @@ impl WafuriAPIClient {
         U: reqwest::IntoUrl,
     {
         let url = url.into_url()?;
-        let viewer_id = self
-            .viewer_id
-            .map(|id| id.to_string())
-            .unwrap_or("".into());
+        let viewer_id = self.viewer_id.map(|id| id.to_string()).unwrap_or("".into());
         let request_checksum = get_request_checksum(&self.uuid, &viewer_id, url.path(), &body);
 
         // clone headers and add request checksum to headers
@@ -220,19 +217,21 @@ impl WafuriAPIClient {
         }
     }
 
-    /// Gets asset version info from the game server, given an `asset_version`
-    pub async fn get_asset_version_info(
+    async fn get_asset_version_info_device_type(
         &self,
         asset_version: &str,
+        device_type: DeviceType,
     ) -> Result<Option<AssetVersionInfo>, Error> {
         if let Some(viewer_id) = self.viewer_id {
-            let request = self.build_post(
-                self.api_host.join(api_url::ASSET_VERSION_INFO)?,
-                encode_base64_msgpack(&GetAssetVersionInfoRequest::new(
-                    asset_version.into(),
-                    viewer_id,
-                ))?,
-            )?;
+            let request = self
+                .build_post(
+                    self.api_host.join(api_url::ASSET_VERSION_INFO)?,
+                    encode_base64_msgpack(&GetAssetVersionInfoRequest::new(
+                        asset_version.into(),
+                        viewer_id,
+                    ))?,
+                )?
+                .header(header_name::DEVICE, device_type.to_string());
 
             match request.send().await?.error_for_status() {
                 Ok(response) => {
@@ -245,6 +244,40 @@ impl WafuriAPIClient {
             }
         } else {
             Ok(None)
+        }
+    }
+
+    /// Gets asset version info from the game server, given an `asset_version`
+    pub async fn get_asset_version_info(
+        &self,
+        asset_version: &str,
+    ) -> Result<Vec<AssetVersionInfo>, Error> {
+        match self.device_type {
+            DeviceType::Android | DeviceType::Ios => {
+                if let Some(asset_version_info) = self
+                    .get_asset_version_info_device_type(asset_version, self.device_type)
+                    .await?
+                {
+                    Ok(vec![asset_version_info])
+                } else {
+                    Ok(Vec::new())
+                }
+            }
+            DeviceType::All => {
+                let android_future =
+                    self.get_asset_version_info_device_type(asset_version, DeviceType::Android);
+                let ios_future =
+                    self.get_asset_version_info_device_type(asset_version, DeviceType::Ios);
+
+                let (android, ios) = try_join!(android_future, ios_future)?;
+
+                Ok(match (android, ios) {
+                    (None, None) => Vec::new(),
+                    (None, Some(ios)) => vec![ios],
+                    (Some(android), None) => vec![android],
+                    (Some(android), Some(ios)) => vec![android, ios],
+                })
+            }
         }
     }
 }
