@@ -51,7 +51,7 @@ pub struct Args {
     /// The location of the patches
     /// By default, this is `patches`
     #[arg(long, short)]
-    pub patch: Option<String>,
+    pub patch: Vec<String>,
 
     /// Strings to replace in patches
     /// In the format to_replace=replace_with
@@ -110,8 +110,12 @@ pub fn patch(args: Args) -> Result<(), Error> {
     let apk_dir_path = apk.temp_dir.path();
 
     // load script patcher
+    let mut patch_dirs = args.patch;
+    if patch_dirs.is_empty() {
+        patch_dirs.push(DEFAULT_PATCH_PATH.to_string());
+    }
     let patcher = ScriptPatcher::new(
-        args.patch.unwrap_or(DEFAULT_PATCH_PATH.to_string()),
+        patch_dirs,
         replacements,
     )?;
 

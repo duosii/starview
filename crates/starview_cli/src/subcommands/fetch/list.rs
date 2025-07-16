@@ -1,10 +1,10 @@
 use clap::Parser;
-use starview_common::{enums::DeviceType, fs::write_file};
+use starview_common::enums::DeviceType;
 use starview_core::{
     download::state::DownloadState,
     fetch::{
         FetchConfig, Fetcher,
-        state::{DownloadFilesListState, FetchAssetInfoState, FetchState},
+        state::{DownloadFilesListState, FetchState},
     },
 };
 use tokio::{sync::watch, time::Instant};

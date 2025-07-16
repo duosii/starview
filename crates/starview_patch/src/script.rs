@@ -18,11 +18,26 @@ pub struct ScriptPatcher {
 }
 
 impl ScriptPatcher {
-    /// Create a new ScriptPatcher that will load patches from the provided directory
+    
+    /// Create a new ScriptPatcher that will load patches from the provided directories
     pub fn new(
-        patches_path: impl AsRef<Path>,
+        patches_paths: Vec<impl AsRef<Path>>,
         replacements: Option<Replacements>,
     ) -> Result<Self, Error> {
+        let mut patcher = Self {
+            patch_paths: Vec::new(),
+            replacements,
+        };
+
+        for path in patches_paths {
+            patcher.get_patches_from_path(path)?;
+        }
+
+        Ok(patcher)
+    }
+
+    /// Loads patches into self.patch_paths from patches_path
+    fn get_patches_from_path(&mut self, patches_path: impl AsRef<Path>) -> Result<(), Error> {
         let patches_path = patches_path.as_ref();
 
         if !patches_path.is_dir() {
@@ -42,10 +57,9 @@ impl ScriptPatcher {
             })
             .collect::<Result<Vec<_>, Error>>()?;
 
-        Ok(Self {
-            patch_paths: paths,
-            replacements,
-        })
+        self.patch_paths.extend(paths);
+
+        Ok(())
     }
 
     /// Pulling from this ScriptPatcher's patches, patches all matching
