@@ -1,5 +1,5 @@
 # starview
-A command-line tool for patching the Chinese version of a certain pinball game.
+A command-line tool for patching the CN version of a pinball game.
 
 starview can additionally download the game's assets while the servers are still live.
 
