@@ -1,4 +1,5 @@
 pub mod signer;
+pub mod aligner;
 
 use std::{
     fs::File,

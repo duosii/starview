@@ -10,7 +10,9 @@ Use the --help flag when running any command to see detailed usage information.
 
 ### Patching an APK
 ```bash
-starview patch <path_to_original_apk> patched.apk
+# Patch the APK to send requests to http://localhost:3000
+# and bypass ID verification.
+starview patch --replace "api_scheme=http,api_host=localhost:3000" <path_to_original_apk> patched.apk
 ```
 
 ### Downloading Assets

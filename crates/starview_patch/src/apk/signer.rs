@@ -25,7 +25,7 @@ impl ApkSigner {
                 return Ok(signer);
             }
         }
-        Err(Error::ApkSignerPath())
+        Err(Error::ApkSignerPath)
     }
 
     /// Create a new APKSigner with a path to the apksigner binary.
@@ -36,7 +36,7 @@ impl ApkSigner {
             true => Ok(Self {
                 location: path.to_path_buf(),
             }),
-            false => Err(Error::ApkSignerPath()),
+            false => Err(Error::ApkSignerPath),
         }
     }
 

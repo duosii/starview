@@ -36,10 +36,16 @@ pub enum Error {
     FFDecImport(String),
 
     #[error("could not find apksigner's install location.")]
-    ApkSignerPath(),
+    ApkSignerPath,
+
+    #[error("could not find zipalign's install location.")]
+    ZipAlignerPath,
 
     #[error("error when signing APK: {0}")]
     Sign(String),
+
+    #[error("error when zipaligning APK: {0}")]
+    ZipAlign(String),
 
     #[error("path is not a directory: {0}")]
     NotDirectory(String),

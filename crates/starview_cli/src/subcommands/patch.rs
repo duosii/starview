@@ -6,20 +6,19 @@ use std::{
 
 use clap::Parser;
 use starview_patch::{
-    ScriptPatcher,
-    apk::{self, Apk, signer::ApkSigner},
-    ffdec::{self, FFDec},
-    replace::Replacements,
+    apk::{self, aligner::ZipAligner, signer::ApkSigner, Apk}, ffdec::{self, FFDec}, replace::Replacements, ScriptPatcher
 };
 
 use crate::{Error, color, progress::ProgressBar};
 
 /// Where extracted FFDec files will be placed
 const EXTRACT_DIR: &str = "extracted";
+const ZIP_FILE_NAME: &str = "apk.zip";
 const DEFAULT_OUT_FILE_NAME: &str = "patched.apk";
 const DEFAULT_KEYSTORE_PATH: &str = "wf.keystore";
 const DEFAULT_KEYSTORE_PASS: &str = "pass:worldflipper";
 const DEFAULT_PATCH_PATH: &str = "patches";
+const ZIP_ALIGN_BYTES: usize = 4;
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -105,6 +104,13 @@ pub fn patch(args: Args) -> Result<(), Error> {
         ApkSigner::new()
     }?;
 
+    // load zipaligner
+    let zip_aligner = if let Some(aligner_path) = args.zip_align {
+        ZipAligner::from_path(aligner_path)
+    } else {
+        ZipAligner::new()
+    }?;
+
     // load APK
     let apk = load_apk(args.apk_path)?;
     let apk_dir_path = apk.temp_dir.path();
@@ -138,9 +144,11 @@ pub fn patch(args: Args) -> Result<(), Error> {
     remove_dir_all(script_extract_path)?;
 
     // zip apk
-    zip_apk(apk, &out_path)?;
+    let zip_path = apk_dir_path.join(ZIP_FILE_NAME);
+    zip_apk(&apk, &zip_path)?;
 
     // zipalign apk
+    align_apk(zip_aligner, ZIP_ALIGN_BYTES, &zip_path, &out_path)?;
 
     // sign apk
     sign_apk(
@@ -162,7 +170,7 @@ pub fn patch(args: Args) -> Result<(), Error> {
 
 fn load_apk(apk_path: String) -> Result<Apk, Error> {
     println!(
-        "{}[1/6] {}Unzipping APK...",
+        "{}[1/7] {}Unzipping APK...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
@@ -180,7 +188,7 @@ fn extract_scripts(
     patcher: &ScriptPatcher,
 ) -> Result<(), Error> {
     println!(
-        "{}[2/6] {}Extracting scripts...",
+        "{}[2/7] {}Extracting scripts...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
@@ -197,7 +205,7 @@ fn extract_scripts(
 
 fn patch_scripts(patcher: &ScriptPatcher, to_patch_dir: PathBuf) -> Result<(), Error> {
     println!(
-        "{}[3/6] {}Patching scripts...",
+        "{}[3/7] {}Patching scripts...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
@@ -214,7 +222,7 @@ fn import_scripts(
     script_extract_path: &PathBuf,
 ) -> Result<(), Error> {
     println!(
-        "{}[4/6] {}Importing patched scripts...",
+        "{}[4/7] {}Importing patched scripts...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
@@ -225,9 +233,9 @@ fn import_scripts(
     Ok(())
 }
 
-fn zip_apk(apk: Apk, out_path: &PathBuf) -> Result<(), Error> {
+fn zip_apk(apk: &Apk, out_path: &PathBuf) -> Result<(), Error> {
     println!(
-        "{}[5/6] {}Zipping APK...",
+        "{}[5/7] {}Zipping APK...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
@@ -238,19 +246,32 @@ fn zip_apk(apk: Apk, out_path: &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-fn sign_apk(
-    apk_signer: ApkSigner,
-    out_path: PathBuf,
-    keystore_path: PathBuf,
-    keystore_pass: &str,
-) -> Result<(), Error> {
+fn align_apk(zip_aligner: ZipAligner, align: usize, in_path: &PathBuf, out_path: &PathBuf) -> Result<(), Error> {
     println!(
-        "{}[6/6] {}Signing APK...",
+        "{}[6/7] {}Zip Aligning APK...",
         color::TEXT_VARIANT.render_fg(),
         color::TEXT.render_fg()
     );
     let progress_bar = ProgressBar::spinner();
-    apk_signer.sign(out_path, keystore_path, keystore_pass)?;
+    zip_aligner.align(align, in_path, out_path)?;
+    progress_bar.finish_and_clear();
+
+    Ok(())
+}
+
+fn sign_apk(
+    apk_signer: ApkSigner,
+    apk_path: PathBuf,
+    keystore_path: PathBuf,
+    keystore_pass: &str,
+) -> Result<(), Error> {
+    println!(
+        "{}[7/7] {}Signing APK...",
+        color::TEXT_VARIANT.render_fg(),
+        color::TEXT.render_fg()
+    );
+    let progress_bar = ProgressBar::spinner();
+    apk_signer.sign(apk_path, keystore_path, keystore_pass)?;
     progress_bar.finish_and_clear();
 
     Ok(())
