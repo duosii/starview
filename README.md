@@ -3,7 +3,7 @@ A command-line tool for patching the CN version of a pinball game.
 
 starview can additionally download the game's assets while the servers are still live.
 
-You can download the most recent version on the [releases page](https://github.com/Duosion/starview/releases/latest).
+You can download the most recent version on the [releases page](https://github.com/duosii/starview/releases/latest).
 
 ## Usage
 Use the --help flag when running any command to see detailed usage information.
