@@ -27,6 +27,28 @@ starview fetch path <out_path>
 starview fetch list <out_path>
 ```
 
+## Creating Patches
+The [patches that are applied using starview](./patches) are `git diffs`.
+
+If you have git installed, you can generate one with the following command:
+```bash
+git diff -p -U0 <original_file> <modified_file> > <package path>.patch
+```
+
+At the top of the newly generated patch, you will see something like:
+```patch
+--- a/<original_file_name>.as
++++ b/<modified_file_name>.as
+```
+Replace `a` and `b` with the fully qualified package path of the file you are generating a patch for.
+```patch
+--- path/to/file/<original_file_name>.as
++++ path/to/file/<original_file_name>.as
+```
+Both lines should be the same aside from the `---` and `+++`
+
+See the [patches directory](./patches) for examples of how patches should be formatted.
+
 ## Building
 ### Dependencies
 - Install [Rust](https://www.rust-lang.org/tools/install) for your platform and ensure that it's up-to-date.
