@@ -47,7 +47,7 @@ cargo run --release
 ```
 
 Once built, place `FFDec` and the  `Android SDK Build-Tools` in the same location as the starview binary in folders named `ffdec` and `build-tools`.
-For reference, you can view the windows release on the [releases page](https://github.com/Duosion/starview/releases/latest)
+For reference, you can view the windows release on the [releases page](https://github.com/duosii/starview/releases/latest)
 
 ### Acknowledgements
 - [jindrapetrik](https://github.com/jindrapetrik) for creating [FFDec](https://github.com/jindrapetrik/jpexs-decompiler), which makes patching the APK's scripts possible.
